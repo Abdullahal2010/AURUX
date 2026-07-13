@@ -10,6 +10,12 @@ import AboutSection from "@/components/AboutSection";
 import LandingFooter from "@/components/LandingFooter";
 import RobotMascot from "@/components/RobotMascot";
 
+// This page is fully client-interactive (chat, forms, scroll effects) and
+// has no per-request data to pre-render, so there's nothing to gain from
+// static generation at build time — and it's what was hanging the build.
+// Rendering on-demand instead sidesteps that entirely.
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>
