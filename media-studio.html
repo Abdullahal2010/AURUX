@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Recorder — AURUX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0b0f;
+    --panel:#131620;
+    --panel-2:#1a1e2a;
+    --panel-3:#212637;
+    --line:rgba(237,234,226,0.14);
+    --line-soft:rgba(237,234,226,0.08);
+    --text:#edeae2;
+    --text-dim:#8b8f9c;
+    --text-faint:#5b5f6c;
+    --primary:#c9a227;
+    --primary-dim:#3a2f10;
+    --accent:#e5484d;
+    --accent-dim:#4a2224;
+    --live:#4f7a6b;
+    --live-dim:#16241f;
+    --focus:#e6c451;
+    --radius:6px;
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'IBM Plex Sans', sans-serif;
+    --display:'Space Grotesk', sans-serif;
+  }
+  [data-theme="hc"]{
+    --bg:#000000;
+    --panel:#0A0A0A;
+    --panel-2:#111111;
+    --panel-3:#1A1A1A;
+    --line:#FFFFFF;
+    --line-soft:#888888;
+    --text:#FFFFFF;
+    --text-dim:#F0F0F0;
+    --text-faint:#CFCFCF;
+    --primary:#7CA6FF;
+    --accent:#FF6A57;
+    --live:#5CFFCF;
+    --focus:#FFE066;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    line-height:1.4;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+  .skip-link{
+    position:absolute; left:8px; top:-60px; background:var(--primary); color:#0a0b0f;
+    padding:10px 16px; border-radius:8px; font-weight:700; z-index:1000; transition:top .15s;
+  }
+  .skip-link:focus{ top:8px; }
+  a, button, [tabindex], input, select{ outline: none; }
+  a:focus-visible, button:focus-visible, [tabindex]:focus-visible, input:focus-visible, select:focus-visible, label.file-btn:focus-within{
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:var(--panel); position:sticky; top:0; z-index:50;
+    gap:12px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:8px; border:2px solid var(--primary);
+    display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0;
+  }
+  .brand-mark::after{
+    content:''; width:12px; height:12px; border-radius:50%; background:var(--primary);
+  }
+  .brand{ text-decoration:none; color:inherit; }
+  .brand-text h1{ font-family:var(--display); font-size:17px; margin:0; letter-spacing:0.01em; font-weight:700; color:var(--text);}
+  .brand-text p{ margin:0; font-size:11px; color:var(--text-dim); font-family:var(--mono); letter-spacing:0.05em; text-transform:uppercase;}
+  .top-actions{ display:flex; align-items:center; gap:10px; }
+  .tally{
+    font-family:var(--mono); font-size:12px; padding:6px 10px; border-radius:6px;
+    border:1px solid var(--line); color:var(--text-dim); display:flex; align-items:center; gap:6px;
+  }
+  .tally .dot{ width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
+  .tally.live{ color:var(--live); border-color:var(--live-dim); background:rgba(47,168,120,0.1); }
+  .tally.live .dot{ background:var(--live); animation:pulse 1.4s infinite; }
+  .tally.rec{ color:var(--accent); border-color:var(--accent-dim); background:rgba(229,72,77,0.1); }
+  .tally.rec .dot{ background:var(--accent); animation:pulse 1.1s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .icon-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:15px;
+  }
+  .icon-btn:hover{ background:var(--panel-3); }
+
+  /* ---------- Layout ---------- */
+  .app{
+    display:grid;
+    grid-template-columns: 76px 1fr 310px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "nav main side"
+      "nav strip strip";
+    min-height:calc(100vh - 63px);
+  }
+  @media (max-width: 980px){
+    .app{ grid-template-columns: 1fr; grid-template-areas: "nav" "main" "side" "strip"; }
+    nav.modes{ flex-direction:row; width:100%; overflow-x:auto; height:auto; padding:8px; }
+  }
+
+  nav.modes{
+    grid-area:nav; background:var(--panel); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;
+  }
+  .mode-btn{
+    width:56px; height:56px; border-radius:12px; background:transparent; border:1px solid transparent;
+    color:var(--text-dim); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; font-family:var(--mono); font-size:9.5px; letter-spacing:0.03em; text-transform:uppercase; flex-shrink:0;
+  }
+  .mode-btn .glyph{ font-size:18px; }
+  .mode-btn:hover{ background:var(--panel-2); color:var(--text); }
+  .mode-btn[aria-pressed="true"]{ background:var(--panel-3); border-color:var(--line); color:var(--primary); }
+  .mode-btn[aria-pressed="true"] .glyph{ filter: drop-shadow(0 0 6px rgba(201,162,39,0.5)); }
+
+  main.stage{
+    grid-area:main; padding:20px; display:flex; flex-direction:column; gap:14px; min-width:0;
+  }
+  .viewfinder{
+    position:relative; background:#000; border-radius:14px; overflow:hidden; border:1px solid var(--line);
+    aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .viewfinder video, .viewfinder canvas, .viewfinder img{
+    width:100%; height:100%; object-fit:contain; display:block; background:#000;
+  }
+  .vf-corner{ position:absolute; width:22px; height:22px; border-color:var(--primary); opacity:0.85; pointer-events:none; }
+  .vf-corner.tl{ top:10px; left:10px; border-top:2px solid var(--primary); border-left:2px solid var(--primary); }
+  .vf-corner.tr{ top:10px; right:10px; border-top:2px solid var(--primary); border-right:2px solid var(--primary); }
+  .vf-corner.bl{ bottom:10px; left:10px; border-bottom:2px solid var(--primary); border-left:2px solid var(--primary); }
+  .vf-corner.br{ bottom:10px; right:10px; border-bottom:2px solid var(--primary); border-right:2px solid var(--primary); }
+  .vf-empty{ color:var(--text-faint); font-family:var(--mono); font-size:13px; text-align:center; padding:20px; }
+  .vf-empty .big{ font-size:30px; display:block; margin-bottom:8px; }
+  .timecode{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    font-family:var(--mono); font-size:13px; background:rgba(0,0,0,0.55); color:var(--text);
+    padding:4px 12px; border-radius:20px; letter-spacing:0.04em; display:none; border:1px solid rgba(255,255,255,0.15);
+  }
+  .timecode.show{ display:block; }
+  .rec-chip{
+    position:absolute; top:12px; left:12px; display:none; align-items:center; gap:6px;
+    background:rgba(229,72,77,0.15); border:1px solid var(--accent); color:var(--accent);
+    font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:20px; font-weight:700;
+  }
+  .rec-chip.show{ display:flex; }
+  .rec-chip .rdot{ width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 1s infinite; }
+
+  .controls-bar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--panel);
+    border:1px solid var(--line); border-radius:12px; padding:12px;
+  }
+  .btn{
+    font-family:var(--sans); font-weight:600; font-size:13.5px; padding:9px 16px; border-radius:8px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; white-space:nowrap;
+  }
+  .btn:hover{ background:var(--panel-3); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn.primary{ background:var(--primary); color:#0a0b0f; border-color:var(--primary); font-weight:600; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn.danger{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.danger:hover{ filter:brightness(1.08); }
+  .btn.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .toggle{
+    display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim);
+    background:var(--panel-2); border:1px solid var(--line); padding:7px 12px; border-radius:8px; cursor:pointer;
+    font-family:var(--mono);
+  }
+  .toggle input{ accent-color:var(--live); width:15px; height:15px; }
+  .toggle.active{ color:var(--live); border-color:var(--live-dim); }
+  .file-btn{ position:relative; overflow:hidden; }
+  .file-btn input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .mini-select{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:8px 10px;
+    border-radius:8px; font-size:12.5px; font-family:var(--mono);
+  }
+
+  .side{
+    grid-area:side; background:var(--panel); border-left:1px solid var(--line); padding:18px 16px;
+    display:flex; flex-direction:column; gap:16px; overflow-y:auto;
+  }
+  .side h2{ font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); font-family:var(--mono); margin:0 0 8px; }
+  .field{ display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
+  .field label{ font-size:12px; color:var(--text-dim); display:flex; justify-content:space-between; }
+  .field label .val{ color:var(--primary); font-family:var(--mono); }
+  .field select, .field input[type=text]{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:7px; font-size:13px;
+  }
+  input[type=range]{ width:100%; accent-color:var(--primary); }
+  .swatches{ display:flex; gap:6px; flex-wrap:wrap; }
+  .swatch{ width:24px; height:24px; border-radius:50%; border:2px solid var(--line); cursor:pointer; }
+  .swatch[aria-pressed="true"]{ border-color:var(--primary); }
+  .status-log{
+    font-family:var(--mono); font-size:11.5px; color:var(--text-dim); background:var(--panel-2);
+    border:1px solid var(--line); border-radius:8px; padding:8px 10px; min-height:40px; max-height:120px; overflow-y:auto;
+  }
+  .hint{ font-size:11.5px; color:var(--text-faint); line-height:1.5; }
+  kbd{ background:var(--panel-3); border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-family:var(--mono); font-size:10.5px; }
+
+  .filmstrip{
+    grid-area:strip; border-top:1px solid var(--line); background:var(--panel); padding:14px 20px;
+  }
+  .filmstrip-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .filmstrip-head h2{ font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); font-family:var(--mono); margin:0; }
+  .reel{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
+  .clip{
+    flex:0 0 auto; width:172px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  }
+  .clip-thumb{ width:100%; height:84px; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  .clip-thumb img, .clip-thumb video{ width:100%; height:100%; object-fit:cover; }
+  .clip-thumb .kind{ position:absolute; bottom:4px; left:4px; font-family:var(--mono); font-size:9px; background:rgba(0,0,0,0.6); padding:2px 5px; border-radius:4px; }
+  .clip-meta{ padding:8px; }
+  .clip-meta .name{ font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .clip-meta .time{ font-size:10px; color:var(--text-faint); font-family:var(--mono); margin-top:2px; }
+  .clip-actions{ display:flex; flex-wrap:wrap; gap:5px; padding:0 8px 8px; }
+  .clip-actions button{
+    flex:1 1 44%; font-size:10.5px; padding:5px 4px; border-radius:6px; border:1px solid var(--line); background:var(--panel-3); color:var(--text); cursor:pointer;
+  }
+  .clip-actions button:hover{ filter:brightness(1.3); }
+  .empty-reel{ color:var(--text-faint); font-family:var(--mono); font-size:12px; padding:12px 0; }
+
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+
+  /* ---------- Editor (photo / video / audio) ---------- */
+  .editor-wrap{ display:none; }
+  .editor-wrap.show{ display:flex; flex-direction:column; gap:14px; }
+  .edit-subnav{ display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:5px; width:fit-content; }
+  .subtab{
+    background:transparent; border:none; color:var(--text-dim); padding:7px 16px; border-radius:7px; cursor:pointer;
+    font-family:var(--sans); font-weight:600; font-size:12.5px;
+  }
+  .subtab[aria-selected="true"]{ background:var(--primary); color:#0a0b0f; }
+  .edit-panel[hidden]{ display:none; }
+  .editor-canvas-box{ position:relative; background:#000; border-radius:14px; border:1px solid var(--line); overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:300px;}
+  .editor-canvas-box canvas{ max-width:100%; max-height:60vh; cursor:crosshair; }
+  .editor-canvas-box video{ width:100%; max-height:60vh; }
+  .editor-canvas-box audio{ width:92%; }
+  .tool-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .tool-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:8px 12px; border-radius:8px;
+    font-size:12.5px; cursor:pointer; font-family:var(--sans); font-weight:600;
+  }
+  .tool-btn[aria-pressed="true"]{ background:var(--primary); color:#0a0b0f; border-color:var(--primary); }
+  .tool-btn.primary{ background:var(--primary); color:#0a0b0f; border-color:var(--primary); }
+  .tool-btn:hover{ filter:brightness(1.1); }
+  .tool-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .vsep{ width:1px; align-self:stretch; background:var(--line); }
+
+  /* ---------- Preview modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(4,5,7,0.78); display:none; align-items:center; justify-content:center;
+    z-index:300; padding:24px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; width:min(760px,100%); max-height:90vh;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .modal-head h3{ margin:0; font-size:14px; font-family:var(--mono); font-weight:500; color:var(--text-dim); }
+  .modal-body{ padding:18px; overflow-y:auto; background:#000; display:flex; align-items:center; justify-content:center; min-height:200px; }
+  .modal-export{ display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; padding:14px 18px; border-top:1px solid var(--line); background:var(--panel-2); }
+  .modal-export .field{ min-width:170px; margin-bottom:0; }
+  .modal-export .hint{ align-self:center; }
+
+  ::-webkit-scrollbar{ height:10px; width:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#stage-main">Skip to stage</a>
+
+<header class="top">
+  <a class="brand" href="index.html" aria-label="Back to AURUX home">
+    <div class="brand-mark" aria-hidden="true"></div>
+    <div class="brand-text">
+      <h1>AURUX</h1>
+      <p>Media Recorder</p>
+    </div>
+  </a>
+  <div class="top-actions">
+    <div class="tally" id="tallyChip" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span><span id="tallyText">Idle</span>
+    </div>
+    <a class="icon-btn" href="index.html#services" title="Back to AURUX services" aria-label="Back to AURUX services" style="text-decoration:none; font-size:13px;">←</a>
+    <button class="icon-btn" id="hcToggle" title="Toggle high contrast" aria-pressed="false">◐</button>
+    <button class="icon-btn" id="helpToggle" title="Keyboard shortcuts" aria-haspopup="dialog">?</button>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="modes" aria-label="Media modes">
+    <button class="mode-btn" data-mode="camera" aria-pressed="true"><span class="glyph" aria-hidden="true">◉</span>Camera</button>
+    <button class="mode-btn" data-mode="audio" aria-pressed="false"><span class="glyph" aria-hidden="true">▮▮</span>Audio</button>
+    <button class="mode-btn" data-mode="screen" aria-pressed="false"><span class="glyph" aria-hidden="true">▭</span>Screen</button>
+    <button class="mode-btn" data-mode="editor" aria-pressed="false"><span class="glyph" aria-hidden="true">✎</span>Edit</button>
+  </nav>
+
+  <main class="stage" id="stage-main">
+    <!-- Camera / Screen / Audio capture -->
+    <div id="captureView">
+      <div class="viewfinder" id="viewfinder">
+        <video id="liveVideo" autoplay muted playsinline style="display:none;"></video>
+        <canvas id="liveCanvas" style="display:none;"></canvas>
+        <div class="vf-empty" id="vfEmpty">
+          <span class="big" aria-hidden="true">◎</span>
+          Press <strong>Start</strong> to activate the preview.
+        </div>
+        <div class="vf-corner tl" aria-hidden="true"></div>
+        <div class="vf-corner tr" aria-hidden="true"></div>
+        <div class="vf-corner bl" aria-hidden="true"></div>
+        <div class="vf-corner br" aria-hidden="true"></div>
+        <div class="rec-chip" id="recChip"><span class="rdot" aria-hidden="true"></span><span id="recChipText">REC</span></div>
+        <div class="timecode" id="timecode">00:00:00</div>
+      </div>
+
+      <div class="controls-bar" role="group" aria-label="Capture controls" style="margin-top:14px;">
+        <button class="btn primary" id="btnStart">▶ Start preview</button>
+        <button class="btn danger" id="btnRecord" disabled>● Record</button>
+        <button class="btn" id="btnSnapshot" disabled>📷 Snapshot</button>
+        <button class="btn ghost" id="btnStop" disabled>■ Stop preview</button>
+        <div class="spacer"></div>
+        <label class="toggle" id="blurToggleWrap">
+          <input type="checkbox" id="blurToggle"> AI Background Blur
+        </label>
+        <label class="sr-only" for="recFormatSel">Recording format</label>
+        <select class="mini-select" id="recFormatSel"></select>
+        <label class="sr-only" for="recQualitySel">Recording quality</label>
+        <select class="mini-select" id="recQualitySel">
+          <option value="low">Low · small file</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High · larger file</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-wrap" id="editorView">
+      <div class="edit-subnav" role="tablist" aria-label="Editor type">
+        <button class="subtab" data-edit="photo" role="tab" aria-selected="true">Photo</button>
+        <button class="subtab" data-edit="video" role="tab" aria-selected="false">Video</button>
+        <button class="subtab" data-edit="audio" role="tab" aria-selected="false">Audio</button>
+      </div>
+
+      <!-- Photo panel -->
+      <div class="edit-panel" id="photoEditorPanel">
+        <div class="controls-bar" role="group" aria-label="Photo file controls">
+          <label class="btn file-btn">📁 Open image
+            <input type="file" id="editorUpload" accept="image/*">
+          </label>
+          <button class="btn" id="editorLoadClip">🎞 Load from reel</button>
+          <div class="spacer"></div>
+          <button class="btn" id="editorUndo" disabled>↶ Undo</button>
+          <button class="btn" id="editorReset" disabled>⟲ Reset</button>
+        </div>
+        <div class="editor-canvas-box">
+          <canvas id="editorCanvas" width="800" height="500"></canvas>
+        </div>
+        <div class="tool-row" role="group" aria-label="Photo tools">
+          <button class="tool-btn" data-tool="select" aria-pressed="true">Select/Crop</button>
+          <button class="tool-btn" data-tool="draw" aria-pressed="false">Draw</button>
+          <button class="tool-btn" data-tool="text" aria-pressed="false">Text</button>
+          <span class="vsep"></span>
+          <button class="tool-btn" id="rotateBtn">⟳ Rotate 90°</button>
+          <button class="tool-btn" id="flipBtn">⇋ Flip</button>
+          <button class="tool-btn" id="cropApplyBtn">✂ Apply crop</button>
+          <span class="vsep"></span>
+          <button class="tool-btn" id="autoEnhanceBtn">✨ Smart enhance</button>
+          <button class="tool-btn" id="editorBlurBg">🫥 Blur background (AI)</button>
+        </div>
+      </div>
+
+      <!-- Video panel -->
+      <div class="edit-panel" id="videoEditorPanel" hidden>
+        <div class="controls-bar" role="group" aria-label="Video file controls">
+          <label class="btn file-btn">📁 Open video
+            <input type="file" id="videoUpload" accept="video/*">
+          </label>
+          <button class="btn" id="videoLoadClip">🎞 Load from reel</button>
+          <div class="spacer"></div>
+          <span class="hint" id="videoTrimInfo">In 00:00:00 · Out 00:00:00 · Dur 00:00:00</span>
+        </div>
+        <div class="editor-canvas-box">
+          <video id="videoEditTarget" controls></video>
+        </div>
+        <div class="tool-row" role="group" aria-label="Video tools">
+          <button class="tool-btn" id="markInBtn" disabled>⏮ Mark in</button>
+          <button class="tool-btn" id="markOutBtn" disabled>⏭ Mark out</button>
+          <button class="tool-btn" id="resetTrimBtn" disabled>↺ Reset trim</button>
+          <span class="vsep"></span>
+          <button class="tool-btn primary" id="exportVideoBtn" disabled>⭳ Export edited video (WebM)</button>
+        </div>
+        <div class="status-log" id="videoExportStatus" role="status" aria-live="polite" style="display:none;"></div>
+        <p class="hint">Export renders in real time (about as long as the trimmed clip) and always saves as WebM first — open it from the reel's <strong>Preview</strong> button to convert to MP4 or compress it further.</p>
+      </div>
+
+      <!-- Audio panel -->
+      <div class="edit-panel" id="audioEditorPanel" hidden>
+        <div class="controls-bar" role="group" aria-label="Audio file controls">
+          <label class="btn file-btn">📁 Open audio
+            <input type="file" id="audioUpload" accept="audio/*">
+          </label>
+          <button class="btn" id="audioLoadClip">🎞 Load from reel</button>
+          <div class="spacer"></div>
+          <span class="hint" id="audioTrimInfo">In 00:00:00 · Out 00:00:00 · Dur 00:00:00</span>
+        </div>
+        <div class="editor-canvas-box" style="min-height:140px;">
+          <audio id="audioEditTarget" controls></audio>
+        </div>
+        <div class="tool-row" role="group" aria-label="Audio tools">
+          <button class="tool-btn" id="audioMarkInBtn" disabled>⏮ Mark in</button>
+          <button class="tool-btn" id="audioMarkOutBtn" disabled>⏭ Mark out</button>
+          <button class="tool-btn" id="audioResetTrimBtn" disabled>↺ Reset trim</button>
+          <span class="vsep"></span>
+          <button class="tool-btn primary" id="exportAudioBtn" disabled>⭳ Export edited audio (WebM)</button>
+        </div>
+        <div class="status-log" id="audioExportStatus" role="status" aria-live="polite" style="display:none;"></div>
+        <p class="hint">Export always saves as WebM/Opus first — use <strong>Preview → Export as</strong> from the reel to convert to MP3 or M4A.</p>
+      </div>
+    </div>
+  </main>
+
+  <aside class="side" aria-label="Settings">
+    <!-- Camera/Screen/Audio settings -->
+    <div id="sideCapture">
+      <h2 id="sideTitle">Camera settings</h2>
+      <div class="field" id="fieldVideoSource">
+        <label for="videoSourceSel">Video source</label>
+        <select id="videoSourceSel"></select>
+      </div>
+      <div class="field" id="fieldAudioSource">
+        <label for="audioSourceSel">Microphone</label>
+        <select id="audioSourceSel"></select>
+      </div>
+      <div class="field" id="fieldRes">
+        <label for="resSel">Resolution</label>
+        <select id="resSel">
+          <option value="1280x720">720p (1280×720)</option>
+          <option value="1920x1080">1080p (1920×1080)</option>
+          <option value="640x480">480p (640×480)</option>
+        </select>
+      </div>
+      <div class="field" id="fieldBlurAmt">
+        <label for="blurAmt">Blur strength<span class="val" id="blurAmtVal">10px</span></label>
+        <input type="range" id="blurAmt" min="2" max="24" value="10">
+      </div>
+      <h2 style="margin-top:14px;">Live filter</h2>
+      <div class="field">
+        <label for="liveFilterSel">Style</label>
+        <select id="liveFilterSel">
+          <option value="none">None</option>
+          <option value="grayscale(1)">Grayscale</option>
+          <option value="sepia(0.8)">Sepia</option>
+          <option value="contrast(1.25) saturate(1.3)">Vivid</option>
+          <option value="brightness(1.15) contrast(0.95)">Soft light</option>
+          <option value="invert(1)">Invert</option>
+        </select>
+      </div>
+      <h2 style="margin-top:14px;">Status</h2>
+      <div class="status-log" id="statusLog" role="log" aria-live="polite">Ready.</div>
+      <h2 style="margin-top:14px;">Shortcuts</h2>
+      <p class="hint">
+        <kbd>R</kbd> start/stop recording · <kbd>S</kbd> snapshot ·
+        <kbd>B</kbd> toggle blur · <kbd>Esc</kbd> stop preview / close dialog
+      </p>
+    </div>
+
+    <!-- Editor settings -->
+    <div id="sideEditor" style="display:none;">
+      <div id="sidePhotoPanel">
+        <h2>Adjust</h2>
+        <div class="field"><label for="rBright">Brightness<span class="val" id="vBright">100%</span></label><input type="range" id="rBright" min="50" max="150" value="100"></div>
+        <div class="field"><label for="rContrast">Contrast<span class="val" id="vContrast">100%</span></label><input type="range" id="rContrast" min="50" max="150" value="100"></div>
+        <div class="field"><label for="rSat">Saturation<span class="val" id="vSat">100%</span></label><input type="range" id="rSat" min="0" max="200" value="100"></div>
+        <div class="field"><label for="rBlur">Softness<span class="val" id="vBlur">0px</span></label><input type="range" id="rBlur" min="0" max="10" value="0"></div>
+        <div class="field">
+          <label for="rFilterPreset">Preset filter</label>
+          <select id="rFilterPreset">
+            <option value="none">None</option>
+            <option value="grayscale(1)">Grayscale</option>
+            <option value="sepia(0.8)">Sepia</option>
+            <option value="invert(1)">Invert</option>
+          </select>
+        </div>
+        <h2 style="margin-top:14px;">Draw / text color</h2>
+        <div class="swatches" id="colorSwatches">
+          <button class="swatch" style="background:#E5484D" data-color="#E5484D" aria-pressed="true" aria-label="Red"></button>
+          <button class="swatch" style="background:#2FA878" data-color="#2FA878" aria-label="Green"></button>
+          <button class="swatch" style="background:#4C82F7" data-color="#4C82F7" aria-label="Blue"></button>
+          <button class="swatch" style="background:#FFE066" data-color="#FFE066" aria-label="Yellow"></button>
+          <button class="swatch" style="background:#FFFFFF" data-color="#FFFFFF" aria-label="White"></button>
+          <button class="swatch" style="background:#000000" data-color="#000000" aria-label="Black"></button>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label for="brushSize">Brush size<span class="val" id="brushSizeVal">6px</span></label>
+          <input type="range" id="brushSize" min="1" max="40" value="6">
+        </div>
+        <div class="field" id="textInputField" style="display:none;">
+          <label for="textInput">Text to stamp</label>
+          <input type="text" id="textInput" placeholder="Type, then click canvas">
+        </div>
+        <p class="hint">Smart enhance auto-levels brightness/contrast locally in your browser. Background blur uses an on-device segmentation model — nothing leaves your machine.</p>
+      </div>
+
+      <div id="sideVideoPanel" style="display:none;">
+        <h2>Filters</h2>
+        <div class="field"><label for="vidBrightness">Brightness<span class="val" id="vidBrightnessVal">100%</span></label><input type="range" id="vidBrightness" min="50" max="150" value="100"></div>
+        <div class="field"><label for="vidContrast">Contrast<span class="val" id="vidContrastVal">100%</span></label><input type="range" id="vidContrast" min="50" max="150" value="100"></div>
+        <div class="field"><label for="vidSaturation">Saturation<span class="val" id="vidSaturationVal">100%</span></label><input type="range" id="vidSaturation" min="0" max="200" value="100"></div>
+        <div class="field">
+          <label for="vidPreset">Preset</label>
+          <select id="vidPreset">
+            <option value="none">None</option>
+            <option value="grayscale(1)">Grayscale</option>
+            <option value="sepia(0.8)">Sepia</option>
+            <option value="invert(1)">Invert</option>
+          </select>
+        </div>
+        <h2 style="margin-top:14px;">Audio &amp; speed</h2>
+        <div class="field"><label for="vidVolume">Volume<span class="val" id="vidVolumeVal">100%</span></label><input type="range" id="vidVolume" min="0" max="200" value="100"></div>
+        <label class="toggle" style="margin-bottom:10px;"><input type="checkbox" id="vidMute"> Mute audio track</label>
+        <div class="field">
+          <label for="vidSpeed">Playback speed</label>
+          <select id="vidSpeed">
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1× (normal)</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="vidExportQuality">Export bitrate</label>
+          <select id="vidExportQuality">
+            <option value="low">Low · small file</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High · larger file</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="sideAudioPanel" style="display:none;">
+        <h2>Levels</h2>
+        <div class="field"><label for="audVolume">Volume<span class="val" id="audVolumeVal">100%</span></label><input type="range" id="audVolume" min="0" max="200" value="100"></div>
+        <div class="field"><label for="audFadeIn">Fade in (sec)<span class="val" id="audFadeInVal">0.0s</span></label><input type="range" id="audFadeIn" min="0" max="5" step="0.1" value="0"></div>
+        <div class="field"><label for="audFadeOut">Fade out (sec)<span class="val" id="audFadeOutVal">0.0s</span></label><input type="range" id="audFadeOut" min="0" max="5" step="0.1" value="0"></div>
+        <div class="field">
+          <label for="audSpeed">Playback speed</label>
+          <select id="audSpeed">
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1× (normal)</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="audExportQuality">Export bitrate</label>
+          <select id="audExportQuality">
+            <option value="low">Low · small file</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High · larger file</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="filmstrip" aria-label="Captured media reel">
+    <div class="filmstrip-head">
+      <h2>Reel</h2>
+      <button class="btn ghost" id="clearReel" style="padding:5px 10px;font-size:12px;">Clear all</button>
+    </div>
+    <div class="reel" id="reel">
+      <p class="empty-reel">Nothing captured yet — recordings, snapshots and edits will appear here.</p>
+    </div>
+  </section>
+</div>
+
+<!-- Preview / export modal -->
+<div class="modal-backdrop" id="previewModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="modal-head">
+      <h3 id="previewTitle">Preview</h3>
+      <button class="icon-btn" id="previewClose" aria-label="Close preview">✕</button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+    <div class="modal-export" id="previewExportBar"></div>
+  </div>
+</div>
+
+<div class="sr-only" id="announcer" role="status" aria-live="assertive"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ================= Utilities ================= */
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  const announcer = $('#announcer');
+  const statusLog = $('#statusLog');
+  function announce(msg){
+    announcer.textContent = msg;
+    const line = document.createElement('div');
+    line.textContent = `› ${msg}`;
+    statusLog.appendChild(line);
+    statusLog.scrollTop = statusLog.scrollHeight;
+    while(statusLog.children.length > 30) statusLog.removeChild(statusLog.firstChild);
+  }
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function fmtTime(sec){
+    sec = Math.max(0, sec || 0);
+    const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  function download(url, name){
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+  function loadScript(src){
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = () => resolve(); s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+  function extForMime(mime){
+    if(!mime) return 'webm';
+    if(mime.includes('mp4')) return 'mp4';
+    if(mime.includes('ogg')) return 'ogg';
+    return 'webm';
+  }
+
+  /* ================= State ================= */
+  const state = {
+    mode: 'camera',
+    stream: null,
+    recorder: null,
+    recordedChunks: [],
+    recordedMime: '',
+    recording: false,
+    recordStart: 0,
+    timerInterval: null,
+    blurEnabled: false,
+    segmentation: null,
+    rafId: null,
+    reel: [],
+    highContrast: false,
+  };
+
+  const els = {
+    liveVideo: $('#liveVideo'),
+    liveCanvas: $('#liveCanvas'),
+    vfEmpty: $('#vfEmpty'),
+    recChip: $('#recChip'),
+    recChipText: $('#recChipText'),
+    timecode: $('#timecode'),
+    tallyChip: $('#tallyChip'),
+    tallyText: $('#tallyText'),
+    btnStart: $('#btnStart'),
+    btnRecord: $('#btnRecord'),
+    btnSnapshot: $('#btnSnapshot'),
+    btnStop: $('#btnStop'),
+    blurToggle: $('#blurToggle'),
+    blurToggleWrap: $('#blurToggleWrap'),
+    blurAmt: $('#blurAmt'),
+    blurAmtVal: $('#blurAmtVal'),
+    videoSourceSel: $('#videoSourceSel'),
+    audioSourceSel: $('#audioSourceSel'),
+    resSel: $('#resSel'),
+    liveFilterSel: $('#liveFilterSel'),
+    reel: $('#reel'),
+    sideTitle: $('#sideTitle'),
+    fieldVideoSource: $('#fieldVideoSource'),
+    fieldAudioSource: $('#fieldAudioSource'),
+    fieldRes: $('#fieldRes'),
+    fieldBlurAmt: $('#fieldBlurAmt'),
+    recFormatSel: $('#recFormatSel'),
+    recQualitySel: $('#recQualitySel'),
+  };
+
+  function setTally(kind, text){
+    els.tallyChip.classList.remove('live','rec');
+    if(kind) els.tallyChip.classList.add(kind);
+    els.tallyText.textContent = text;
+  }
+
+  /* ================= Recording format detection ================= */
+  const VIDEO_CANDIDATES = [
+    {label:'WebM · VP9/Opus (recommended, smallest)', mime:'video/webm;codecs=vp9,opus'},
+    {label:'WebM · VP8/Opus', mime:'video/webm;codecs=vp8,opus'},
+    {label:'MP4 · H.264/AAC (if supported)', mime:'video/mp4;codecs=avc1.42E01E,mp4a.40.2'},
+    {label:'MP4 (browser default)', mime:'video/mp4'},
+  ];
+  const AUDIO_CANDIDATES = [
+    {label:'WebM · Opus (recommended, smallest)', mime:'audio/webm;codecs=opus'},
+    {label:'MP4 · AAC (if supported)', mime:'audio/mp4'},
+    {label:'OGG · Opus', mime:'audio/ogg;codecs=opus'},
+  ];
+  function populateRecFormats(){
+    const list = state.mode === 'audio' ? AUDIO_CANDIDATES : VIDEO_CANDIDATES;
+    const supported = list.filter(c => { try{ return window.MediaRecorder && MediaRecorder.isTypeSupported(c.mime); }catch(e){ return false; } });
+    const use = supported.length ? supported : [{label:'Browser default', mime:''}];
+    els.recFormatSel.innerHTML = use.map(c => `<option value="${c.mime}">${c.label}</option>`).join('');
+  }
+
+  /* ================= Mode switching ================= */
+  const captureView = $('#captureView');
+  const editorView = $('#editorView');
+  const sideCapture = $('#sideCapture');
+  const sideEditor = $('#sideEditor');
+
+  function setMode(mode){
+    if(state.recording || state.stream){ stopPreview(); }
+    state.mode = mode;
+    $$('.mode-btn').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode ? 'true':'false'));
+    if(mode === 'editor'){
+      captureView.style.display = 'none';
+      editorView.classList.add('show');
+      sideCapture.style.display = 'none';
+      sideEditor.style.display = 'block';
+      setEditSubMode(state.editSub || 'photo');
+    } else {
+      captureView.style.display = 'block';
+      editorView.classList.remove('show');
+      sideCapture.style.display = 'block';
+      sideEditor.style.display = 'none';
+    }
+    const titles = {camera:'Camera settings', audio:'Audio settings', screen:'Screen recording settings'};
+    els.sideTitle.textContent = titles[mode] || 'Settings';
+    els.fieldVideoSource.style.display = (mode==='camera') ? 'flex' : 'none';
+    els.fieldAudioSource.style.display = (mode!=='screen') ? 'flex' : 'none';
+    els.fieldRes.style.display = (mode!=='audio') ? 'flex' : 'none';
+    els.blurToggleWrap.style.display = (mode==='camera') ? 'inline-flex' : 'none';
+    els.fieldBlurAmt.style.display = (mode==='camera') ? 'flex' : 'none';
+    els.btnStart.textContent = mode === 'screen' ? '▶ Start screen share' : '▶ Start preview';
+    els.btnSnapshot.style.display = mode === 'audio' ? 'none' : 'inline-flex';
+    populateRecFormats();
+    announce(`Switched to ${mode} mode.`);
+  }
+  $$('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+  /* ================= Device enumeration ================= */
+  async function populateDevices(){
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const mics = devices.filter(d => d.kind === 'audioinput');
+      els.videoSourceSel.innerHTML = cams.map((d,i) => `<option value="${d.deviceId}">${d.label || 'Camera '+(i+1)}</option>`).join('') || '<option value="">Default camera</option>';
+      els.audioSourceSel.innerHTML = mics.map((d,i) => `<option value="${d.deviceId}">${d.label || 'Microphone '+(i+1)}</option>`).join('') || '<option value="">Default microphone</option>';
+    }catch(e){ /* labels appear only after permission; safe to ignore */ }
+  }
+  navigator.mediaDevices && navigator.mediaDevices.addEventListener && navigator.mediaDevices.addEventListener('devicechange', populateDevices);
+
+  /* ================= Segmentation (AI background blur) ================= */
+  function ensureSegmentation(){
+    if(state.segmentation) return state.segmentation;
+    if(typeof SelfieSegmentation === 'undefined'){
+      announce('Background blur model failed to load (check internet connection).');
+      return null;
+    }
+    const seg = new SelfieSegmentation({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}` });
+    seg.setOptions({ modelSelection: 1 });
+    state.segmentation = seg;
+    return seg;
+  }
+  let segResultsCache = null;
+  function drawBlurredComposite(ctx, w, h, resultsImage, mask, blurPx){
+    ctx.save();
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(mask, 0, 0, w, h);
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.drawImage(resultsImage, 0, 0, w, h);
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.filter = `blur(${blurPx}px)`;
+    ctx.drawImage(resultsImage, 0, 0, w, h);
+    ctx.filter = 'none';
+    ctx.restore();
+  }
+
+  /* ================= Live preview loop ================= */
+  function startRenderLoop(){
+    const video = els.liveVideo;
+    const canvas = els.liveCanvas;
+    const ctx = canvas.getContext('2d');
+    async function loop(){
+      if(!state.stream) return;
+      const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+      if(canvas.width !== w) canvas.width = w;
+      if(canvas.height !== h) canvas.height = h;
+      const filter = els.liveFilterSel.value;
+      if(state.blurEnabled && state.mode === 'camera'){
+        const seg = ensureSegmentation();
+        if(seg){
+          if(!state._segInit){
+            seg.onResults((results) => { segResultsCache = results; });
+            state._segInit = true;
+          }
+          try{ await seg.send({ image: video }); }catch(e){}
+          if(segResultsCache){
+            ctx.filter = filter !== 'none' ? filter : 'none';
+            drawBlurredComposite(ctx, w, h, segResultsCache.image, segResultsCache.segmentationMask, Number(els.blurAmt.value));
+          } else {
+            ctx.filter = filter; ctx.drawImage(video, 0, 0, w, h); ctx.filter = 'none';
+          }
+        } else {
+          ctx.filter = filter; ctx.drawImage(video, 0, 0, w, h); ctx.filter = 'none';
+        }
+      } else {
+        ctx.filter = filter; ctx.drawImage(video, 0, 0, w, h); ctx.filter = 'none';
+      }
+      state.rafId = requestAnimationFrame(loop);
+    }
+    state.rafId = requestAnimationFrame(loop);
+  }
+  function stopRenderLoop(){
+    if(state.rafId) cancelAnimationFrame(state.rafId);
+    state.rafId = null; segResultsCache = null; state._segInit = false;
+  }
+
+  /* ================= Start / Stop preview ================= */
+  async function startPreview(){
+    try{
+      if(state.mode === 'screen'){
+        state.stream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:true });
+        els.liveVideo.srcObject = state.stream;
+        els.liveVideo.style.display = 'block';
+        els.liveCanvas.style.display = 'none';
+        els.liveVideo.onloadedmetadata = () => els.liveVideo.play();
+        state.stream.getVideoTracks()[0].addEventListener('ended', stopPreview);
+      } else if(state.mode === 'audio'){
+        const audioDeviceId = els.audioSourceSel.value || undefined;
+        state.stream = await navigator.mediaDevices.getUserMedia({ audio: audioDeviceId ? {deviceId:{exact:audioDeviceId}} : true });
+        els.liveVideo.style.display = 'none'; els.liveCanvas.style.display = 'none';
+      } else {
+        const [w,h] = els.resSel.value.split('x').map(Number);
+        const videoDeviceId = els.videoSourceSel.value || undefined;
+        const audioDeviceId = els.audioSourceSel.value || undefined;
+        state.stream = await navigator.mediaDevices.getUserMedia({
+          video: { width:{ideal:w}, height:{ideal:h}, deviceId: videoDeviceId ? {exact:videoDeviceId} : undefined },
+          audio: audioDeviceId ? {deviceId:{exact:audioDeviceId}} : true
+        });
+        els.liveVideo.srcObject = state.stream;
+        els.liveVideo.style.display = 'none'; els.liveCanvas.style.display = 'block';
+        els.liveVideo.onloadedmetadata = () => { els.liveVideo.play(); startRenderLoop(); };
+      }
+      els.vfEmpty.style.display = 'none';
+      els.btnStart.disabled = true;
+      els.btnRecord.disabled = false;
+      els.btnSnapshot.disabled = (state.mode === 'audio');
+      els.btnStop.disabled = false;
+      setTally('live', state.mode === 'audio' ? 'Mic live' : 'Preview live');
+      announce('Preview started.');
+      populateDevices();
+    }catch(err){
+      announce('Could not start preview: ' + err.message);
+    }
+  }
+  function stopPreview(){
+    if(state.recording) stopRecording();
+    stopRenderLoop();
+    if(state.stream){ state.stream.getTracks().forEach(t => t.stop()); }
+    state.stream = null;
+    els.liveVideo.srcObject = null;
+    els.liveVideo.style.display = 'none';
+    els.liveCanvas.style.display = 'none';
+    els.vfEmpty.style.display = 'block';
+    els.btnStart.disabled = false;
+    els.btnRecord.disabled = true;
+    els.btnSnapshot.disabled = true;
+    els.btnStop.disabled = true;
+    setTally(null, 'Idle');
+    announce('Preview stopped.');
+  }
+
+  /* ================= Recording ================= */
+  function getRecordingSourceStream(){
+    if(state.mode === 'camera' && state.blurEnabled){
+      const canvasStream = els.liveCanvas.captureStream(30);
+      state.stream.getAudioTracks().forEach(t => canvasStream.addTrack(t));
+      return canvasStream;
+    }
+    return state.stream;
+  }
+  const QUALITY_VIDEO_BPS = { low: 1000000, medium: 3000000, high: 6000000 };
+  const QUALITY_AUDIO_BPS = { low: 64000, medium: 128000, high: 192000 };
+
+  function startRecording(){
+    if(!state.stream) return;
+    const src = getRecordingSourceStream();
+    let mimeType = els.recFormatSel.value || '';
+    if(mimeType){
+      try{ if(!MediaRecorder.isTypeSupported(mimeType)) mimeType=''; }catch(e){ mimeType=''; }
+    }
+    const q = els.recQualitySel.value;
+    const opts = {};
+    if(mimeType) opts.mimeType = mimeType;
+    if(state.mode !== 'audio') opts.videoBitsPerSecond = QUALITY_VIDEO_BPS[q] || QUALITY_VIDEO_BPS.medium;
+    opts.audioBitsPerSecond = QUALITY_AUDIO_BPS[q] || QUALITY_AUDIO_BPS.medium;
+    state.recordedChunks = [];
+    try{
+      state.recorder = new MediaRecorder(src, opts);
+    }catch(e){
+      state.recorder = new MediaRecorder(src);
+    }
+    state.recordedMime = state.recorder.mimeType || mimeType || (state.mode==='audio' ? 'audio/webm' : 'video/webm');
+    state.recorder.ondataavailable = (e) => { if(e.data.size > 0) state.recordedChunks.push(e.data); };
+    state.recorder.onstop = onRecordingStop;
+    state.recorder.start();
+    state.recording = true;
+    state.recordStart = Date.now();
+    els.recChip.classList.add('show');
+    els.recChipText.textContent = state.mode === 'audio' ? 'REC AUDIO' : 'REC';
+    els.timecode.classList.add('show');
+    state.timerInterval = setInterval(() => { els.timecode.textContent = fmtTime((Date.now()-state.recordStart)/1000); }, 500);
+    els.btnRecord.textContent = '■ Stop recording';
+    els.btnRecord.classList.remove('danger'); els.btnRecord.classList.add('primary');
+    setTally('rec', state.mode === 'audio' ? 'Recording audio' : 'Recording');
+    announce('Recording started.');
+  }
+  function stopRecording(){
+    if(state.recorder && state.recorder.state !== 'inactive') state.recorder.stop();
+    state.recording = false;
+    clearInterval(state.timerInterval);
+    els.recChip.classList.remove('show');
+    els.timecode.classList.remove('show');
+    els.btnRecord.textContent = '● Record';
+    els.btnRecord.classList.add('danger'); els.btnRecord.classList.remove('primary');
+    setTally('live', state.mode === 'audio' ? 'Mic live' : 'Preview live');
+  }
+  function onRecordingStop(){
+    const mime = state.recordedMime || (state.mode==='audio' ? 'audio/webm' : 'video/webm');
+    const blob = new Blob(state.recordedChunks, {type: mime});
+    const url = URL.createObjectURL(blob);
+    const kind = state.mode === 'audio' ? 'audio' : (state.mode === 'screen' ? 'screen-recording' : 'video');
+    const ext = extForMime(mime);
+    addToReel({ type: kind, url, blob, name: `${kind}-${Date.now()}.${ext}` });
+    announce('Recording saved to reel.');
+  }
+
+  els.btnStart.addEventListener('click', startPreview);
+  els.btnStop.addEventListener('click', stopPreview);
+  els.btnRecord.addEventListener('click', () => { state.recording ? stopRecording() : startRecording(); });
+  els.btnSnapshot.addEventListener('click', () => {
+    if(!state.stream) return;
+    const canvas = document.createElement('canvas');
+    let w, h, drawCtx;
+    if(state.mode === 'camera'){
+      w = els.liveCanvas.width || 1280; h = els.liveCanvas.height || 720;
+      canvas.width = w; canvas.height = h;
+      drawCtx = canvas.getContext('2d');
+      drawCtx.drawImage(els.liveCanvas, 0, 0, w, h);
+    } else {
+      w = els.liveVideo.videoWidth; h = els.liveVideo.videoHeight;
+      canvas.width = w; canvas.height = h;
+      drawCtx = canvas.getContext('2d');
+      drawCtx.drawImage(els.liveVideo, 0, 0, w, h);
+    }
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      addToReel({ type:'photo', url, blob, name:`snapshot-${Date.now()}.png` });
+      announce('Snapshot captured.');
+    }, 'image/png');
+  });
+  els.blurToggle.addEventListener('change', () => {
+    state.blurEnabled = els.blurToggle.checked;
+    els.blurToggleWrap.classList.toggle('active', state.blurEnabled);
+    announce(state.blurEnabled ? 'AI background blur enabled.' : 'Background blur disabled.');
+  });
+  els.blurAmt.addEventListener('input', () => { els.blurAmtVal.textContent = els.blurAmt.value + 'px'; });
+
+  /* ================= Reel ================= */
+  function addToReel(item){
+    item.id = uid(); item.ts = new Date();
+    state.reel.unshift(item);
+    renderReel();
+  }
+  function renderReel(){
+    const reel = els.reel;
+    if(state.reel.length === 0){
+      reel.innerHTML = '<p class="empty-reel">Nothing captured yet — recordings, snapshots and edits will appear here.</p>';
+      return;
+    }
+    reel.innerHTML = '';
+    state.reel.forEach(item => {
+      const clip = document.createElement('div');
+      clip.className = 'clip';
+      const thumb = document.createElement('div');
+      thumb.className = 'clip-thumb';
+      if(item.type === 'photo' || item.type === 'edited-photo'){
+        const img = document.createElement('img'); img.src = item.url; img.alt = item.name; thumb.appendChild(img);
+      } else if(item.type === 'audio' || item.type === 'edited-audio'){
+        thumb.innerHTML = '<span style="font-size:22px;" aria-hidden="true">🎙</span>';
+      } else {
+        const v = document.createElement('video'); v.src = item.url; v.muted = true; thumb.appendChild(v);
+      }
+      const kindTag = document.createElement('span');
+      kindTag.className = 'kind'; kindTag.textContent = item.type.replace('-', ' ');
+      thumb.appendChild(kindTag);
+
+      const meta = document.createElement('div');
+      meta.className = 'clip-meta';
+      meta.innerHTML = `<div class="name">${item.name}</div><div class="time">${item.ts.toLocaleTimeString()}</div>`;
+
+      const actions = document.createElement('div');
+      actions.className = 'clip-actions';
+      const prev = document.createElement('button');
+      prev.textContent = 'Preview'; prev.setAttribute('aria-label', `Preview ${item.name}`);
+      prev.addEventListener('click', () => openPreview(item));
+      const dl = document.createElement('button');
+      dl.textContent = 'Download'; dl.setAttribute('aria-label', `Download ${item.name}`);
+      dl.addEventListener('click', () => download(item.url, item.name));
+      const del = document.createElement('button');
+      del.textContent = 'Delete'; del.setAttribute('aria-label', `Delete ${item.name}`);
+      del.addEventListener('click', () => { state.reel = state.reel.filter(r => r.id !== item.id); renderReel(); announce('Item deleted from reel.'); });
+      actions.appendChild(prev); actions.appendChild(dl);
+      if(item.type === 'photo' || item.type === 'edited-photo'){
+        const edit = document.createElement('button');
+        edit.textContent = 'Edit'; edit.setAttribute('aria-label', `Edit ${item.name}`);
+        edit.addEventListener('click', () => { setMode('editor'); setEditSubMode('photo'); loadImageIntoEditor(item.url, item.name); });
+        actions.appendChild(edit);
+      } else if(item.type === 'video' || item.type === 'screen-recording' || item.type === 'edited-video'){
+        const edit = document.createElement('button');
+        edit.textContent = 'Edit'; edit.setAttribute('aria-label', `Edit ${item.name}`);
+        edit.addEventListener('click', () => { setMode('editor'); setEditSubMode('video'); loadVideoIntoEditor(item.url, item.name); });
+        actions.appendChild(edit);
+      } else {
+        const edit = document.createElement('button');
+        edit.textContent = 'Edit'; edit.setAttribute('aria-label', `Edit ${item.name}`);
+        edit.addEventListener('click', () => { setMode('editor'); setEditSubMode('audio'); loadAudioIntoEditor(item.url, item.name); });
+        actions.appendChild(edit);
+      }
+      actions.appendChild(del);
+
+      clip.appendChild(thumb); clip.appendChild(meta); clip.appendChild(actions);
+      reel.appendChild(clip);
+    });
+  }
+  $('#clearReel').addEventListener('click', () => { state.reel = []; renderReel(); announce('Reel cleared.'); });
+
+  /* ================= Preview / export modal ================= */
+  let lastFocusedEl = null;
+  let ffmpegInstance = null, ffmpegLoadPromise = null;
+  async function getFFmpeg(){
+    if(ffmpegInstance) return ffmpegInstance;
+    if(!ffmpegLoadPromise){
+      ffmpegLoadPromise = (async () => {
+        if(typeof FFmpeg === 'undefined'){
+          await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+        }
+        const { createFFmpeg } = FFmpeg;
+        const ff = createFFmpeg({ log:false, corePath:'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js' });
+        await ff.load();
+        ffmpegInstance = ff;
+        return ff;
+      })();
+    }
+    return ffmpegLoadPromise;
+  }
+  function convertImage(imgUrl, format, quality){
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        if(format === 'image/jpeg'){ ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,c.width,c.height); }
+        ctx.drawImage(img, 0, 0);
+        c.toBlob((blob) => resolve(blob), format, quality);
+      };
+      img.src = imgUrl;
+    });
+  }
+  async function exportConvert(item, format, quality, statusEl, btnEl){
+    btnEl.disabled = true;
+    try{
+      if(item.type === 'photo' || item.type === 'edited-photo'){
+        statusEl.textContent = 'Encoding…';
+        const blob = await convertImage(item.url, format, quality);
+        const ext = format === 'image/png' ? 'png' : (format === 'image/webp' ? 'webp' : 'jpg');
+        const name = item.name.replace(/\.[^.]+$/, '') + '.' + ext;
+        download(URL.createObjectURL(blob), name);
+        statusEl.textContent = 'Done — check your downloads.';
+      } else if(['video','screen-recording','edited-video'].includes(item.type)){
+        if(format === 'webm'){
+          download(item.url, item.name);
+          statusEl.textContent = 'Downloaded original WebM.';
+        } else {
+          statusEl.textContent = 'Loading on-device converter (first time only, ~25MB)…';
+          const ff = await getFFmpeg();
+          ff.setProgress(({ratio}) => { if(ratio >= 0 && ratio <= 1) statusEl.textContent = `Converting… ${Math.round(ratio*100)}%`; });
+          const { fetchFile } = FFmpeg;
+          ff.FS('writeFile', 'in.webm', await fetchFile(item.blob));
+          const crf = quality === 'small' ? '32' : (quality === 'high' ? '20' : '26');
+          await ff.run('-i','in.webm','-c:v','libx264','-preset','veryfast','-crf',crf,'-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','out.mp4');
+          const data = ff.FS('readFile','out.mp4');
+          try{ ff.FS('unlink','in.webm'); ff.FS('unlink','out.mp4'); }catch(e){}
+          const blob = new Blob([data.buffer], {type:'video/mp4'});
+          const name = item.name.replace(/\.[^.]+$/, '') + '.mp4';
+          download(URL.createObjectURL(blob), name);
+          statusEl.textContent = 'Done — MP4 downloaded.';
+        }
+      } else {
+        if(format === 'webm'){
+          download(item.url, item.name);
+          statusEl.textContent = 'Downloaded original WebM/Opus.';
+        } else {
+          statusEl.textContent = 'Loading on-device converter (first time only, ~25MB)…';
+          const ff = await getFFmpeg();
+          ff.setProgress(({ratio}) => { if(ratio >= 0 && ratio <= 1) statusEl.textContent = `Converting… ${Math.round(ratio*100)}%`; });
+          const { fetchFile } = FFmpeg;
+          ff.FS('writeFile', 'in.webm', await fetchFile(item.blob));
+          let outName, mime, args;
+          if(format === 'mp3'){
+            const qv = quality === 'small' ? '7' : (quality === 'high' ? '2' : '4');
+            outName = 'out.mp3'; mime = 'audio/mpeg';
+            args = ['-i','in.webm','-c:a','libmp3lame','-q:a',qv,outName];
+          } else {
+            const br = quality === 'small' ? '96k' : (quality === 'high' ? '192k' : '128k');
+            outName = 'out.m4a'; mime = 'audio/mp4';
+            args = ['-i','in.webm','-c:a','aac','-b:a',br,outName];
+          }
+          await ff.run(...args);
+          const data = ff.FS('readFile', outName);
+          try{ ff.FS('unlink','in.webm'); ff.FS('unlink', outName); }catch(e){}
+          const blob = new Blob([data.buffer], {type:mime});
+          const name = item.name.replace(/\.[^.]+$/, '') + '.' + (format === 'mp3' ? 'mp3' : 'm4a');
+          download(URL.createObjectURL(blob), name);
+          statusEl.textContent = 'Done — file downloaded.';
+        }
+      }
+    }catch(err){
+      statusEl.textContent = 'Conversion failed: ' + err.message;
+      announce('Conversion failed.');
+    }finally{
+      btnEl.disabled = false;
+    }
+  }
+  function buildExportBar(item){
+    const bar = $('#previewExportBar');
+    bar.innerHTML = '';
+    if(item.type === 'photo' || item.type === 'edited-photo'){
+      bar.innerHTML = `
+        <div class="field">
+          <label for="expFormat">Save as</label>
+          <select id="expFormat">
+            <option value="image/png">PNG (lossless)</option>
+            <option value="image/jpeg">JPEG</option>
+            <option value="image/webp">WebP</option>
+          </select>
+        </div>
+        <div class="field" id="expQualityWrap">
+          <label for="expQuality">Quality<span class="val" id="expQualityVal">85%</span></label>
+          <input type="range" id="expQuality" min="10" max="100" value="85">
+        </div>
+        <button class="btn primary" id="expGo">⭳ Save image</button>
+        <span class="hint" id="expStatus"></span>`;
+      const fmtSel = $('#expFormat'), qWrap = $('#expQualityWrap');
+      const syncQ = () => { qWrap.style.display = fmtSel.value === 'image/png' ? 'none' : 'flex'; };
+      fmtSel.addEventListener('change', syncQ); syncQ();
+      $('#expQuality').addEventListener('input', (e) => { $('#expQualityVal').textContent = e.target.value + '%'; });
+      $('#expGo').addEventListener('click', (e) => exportConvert(item, fmtSel.value, Number($('#expQuality').value)/100, $('#expStatus'), e.currentTarget));
+    } else if(['video','screen-recording','edited-video'].includes(item.type)){
+      bar.innerHTML = `
+        <div class="field">
+          <label for="expFormat">Export as</label>
+          <select id="expFormat">
+            <option value="webm">WebM (original — instant)</option>
+            <option value="mp4">MP4 / H.264 (universal compatibility)</option>
+          </select>
+        </div>
+        <div class="field" id="expQualityWrap">
+          <label for="expQuality">Size / quality</label>
+          <select id="expQuality">
+            <option value="small">Smaller file</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="high">Higher quality</option>
+          </select>
+        </div>
+        <button class="btn primary" id="expGo">⭳ Export</button>
+        <span class="hint" id="expStatus"></span>`;
+      const fmtSel = $('#expFormat'), qWrap = $('#expQualityWrap');
+      const syncQ = () => { qWrap.style.display = fmtSel.value === 'webm' ? 'none' : 'flex'; };
+      fmtSel.addEventListener('change', syncQ); syncQ();
+      $('#expGo').addEventListener('click', (e) => exportConvert(item, fmtSel.value, $('#expQuality').value, $('#expStatus'), e.currentTarget));
+    } else {
+      bar.innerHTML = `
+        <div class="field">
+          <label for="expFormat">Export as</label>
+          <select id="expFormat">
+            <option value="webm">WebM/Opus (original — instant)</option>
+            <option value="mp3">MP3 (universal compatibility)</option>
+            <option value="m4a">M4A / AAC</option>
+          </select>
+        </div>
+        <div class="field" id="expQualityWrap">
+          <label for="expQuality">Size / quality</label>
+          <select id="expQuality">
+            <option value="small">Smaller file</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="high">Higher quality</option>
+          </select>
+        </div>
+        <button class="btn primary" id="expGo">⭳ Export</button>
+        <span class="hint" id="expStatus"></span>`;
+      const fmtSel = $('#expFormat'), qWrap = $('#expQualityWrap');
+      const syncQ = () => { qWrap.style.display = fmtSel.value === 'webm' ? 'none' : 'flex'; };
+      fmtSel.addEventListener('change', syncQ); syncQ();
+      $('#expGo').addEventListener('click', (e) => exportConvert(item, fmtSel.value, $('#expQuality').value, $('#expStatus'), e.currentTarget));
+    }
+  }
+  function openPreview(item){
+    lastFocusedEl = document.activeElement;
+    $('#previewTitle').textContent = item.name;
+    const body = $('#previewBody');
+    body.innerHTML = '';
+    if(item.type === 'photo' || item.type === 'edited-photo'){
+      const img = document.createElement('img');
+      img.src = item.url; img.alt = item.name;
+      img.style.maxWidth = '100%'; img.style.maxHeight = '60vh'; img.style.display = 'block';
+      body.appendChild(img);
+    } else if(item.type === 'audio' || item.type === 'edited-audio'){
+      const audio = document.createElement('audio');
+      audio.src = item.url; audio.controls = true; audio.style.width = '100%';
+      body.appendChild(audio);
+    } else {
+      const video = document.createElement('video');
+      video.src = item.url; video.controls = true; video.style.width = '100%'; video.style.maxHeight = '60vh';
+      body.appendChild(video);
+    }
+    buildExportBar(item);
+    $('#previewModal').classList.add('show');
+    $('#previewClose').focus();
+    document.body.style.overflow = 'hidden';
+  }
+  function closePreview(){
+    $('#previewModal').classList.remove('show');
+    const body = $('#previewBody');
+    body.querySelectorAll('video,audio').forEach(m => m.pause());
+    body.innerHTML = '';
+    document.body.style.overflow = '';
+    if(lastFocusedEl) lastFocusedEl.focus();
+  }
+  $('#previewClose').addEventListener('click', closePreview);
+  $('#previewModal').addEventListener('click', (e) => { if(e.target.id === 'previewModal') closePreview(); });
+
+  /* ================= Photo Editor ================= */
+  const ed = { canvas: $('#editorCanvas'), ctx: null, baseImage: null, history: [], tool: 'select', drawing: false, cropStart: null, cropRect: null, color:'#E5484D', brush:6, currentName:'' };
+  ed.ctx = ed.canvas.getContext('2d');
+  function pushHistory(){
+    try{
+      ed.history.push(ed.ctx.getImageData(0,0,ed.canvas.width, ed.canvas.height));
+      if(ed.history.length > 20) ed.history.shift();
+      $('#editorUndo').disabled = ed.history.length < 2;
+    }catch(e){}
+  }
+  function loadImageIntoEditor(url, name){
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      ed.baseImage = img;
+      ed.canvas.width = img.naturalWidth; ed.canvas.height = img.naturalHeight;
+      ed.ctx.filter = 'none'; ed.ctx.drawImage(img, 0, 0);
+      ed.history = []; pushHistory();
+      $('#editorReset').disabled = false;
+      ed.currentName = name || `edited-${Date.now()}.png`;
+      resetAdjustSliders();
+      announce('Image loaded into editor.');
+    };
+    img.src = url;
+  }
+  $('#editorUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    loadImageIntoEditor(URL.createObjectURL(file), file.name);
+  });
+  $('#editorLoadClip').addEventListener('click', () => {
+    const photo = state.reel.find(r => r.type === 'photo' || r.type === 'edited-photo');
+    if(photo) loadImageIntoEditor(photo.url, photo.name);
+    else announce('No photo in the reel yet. Take a snapshot first.');
+  });
+  function resetAdjustSliders(){
+    $('#rBright').value = 100; $('#vBright').textContent = '100%';
+    $('#rContrast').value = 100; $('#vContrast').textContent = '100%';
+    $('#rSat').value = 100; $('#vSat').textContent = '100%';
+    $('#rBlur').value = 0; $('#vBlur').textContent = '0px';
+    $('#rFilterPreset').value = 'none';
+  }
+  function currentFilterString(){
+    const b = $('#rBright').value, c = $('#rContrast').value, s = $('#rSat').value, bl = $('#rBlur').value;
+    const preset = $('#rFilterPreset').value;
+    let f = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${bl}px)`;
+    if(preset !== 'none') f += ' ' + preset;
+    return f;
+  }
+  function applyLiveAdjustPreview(){
+    if(!ed.baseImage) return;
+    ed.ctx.save(); ed.ctx.clearRect(0,0,ed.canvas.width, ed.canvas.height);
+    ed.ctx.filter = currentFilterString();
+    ed.ctx.drawImage(ed.baseImage, 0, 0, ed.canvas.width, ed.canvas.height);
+    ed.ctx.filter = 'none'; ed.ctx.restore();
+  }
+  ['rBright','rContrast','rSat','rBlur','rFilterPreset'].forEach(id => {
+    $('#'+id).addEventListener('input', () => {
+      $('#vBright').textContent = $('#rBright').value + '%';
+      $('#vContrast').textContent = $('#rContrast').value + '%';
+      $('#vSat').textContent = $('#rSat').value + '%';
+      $('#vBlur').textContent = $('#rBlur').value + 'px';
+      applyLiveAdjustPreview();
+    });
+    $('#'+id).addEventListener('change', () => { ed.baseImage && commitAdjustToBase(); });
+  });
+  function commitAdjustToBase(){
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image();
+    img.onload = () => { ed.baseImage = img; pushHistory(); resetAdjustSliders(); };
+    img.src = dataUrl;
+  }
+  $$('.tool-btn[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.tool-btn[data-tool]').forEach(b => b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      ed.tool = btn.dataset.tool;
+      $('#textInputField').style.display = ed.tool === 'text' ? 'flex' : 'none';
+      announce(`${ed.tool} tool selected.`);
+    });
+  });
+  $$('#colorSwatches .swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      $$('#colorSwatches .swatch').forEach(s => s.setAttribute('aria-pressed','false'));
+      sw.setAttribute('aria-pressed','true'); ed.color = sw.dataset.color;
+    });
+  });
+  $('#brushSize').addEventListener('input', (e) => { ed.brush = Number(e.target.value); $('#brushSizeVal').textContent = ed.brush + 'px'; });
+  function canvasPoint(evt){
+    const rect = ed.canvas.getBoundingClientRect();
+    const scaleX = ed.canvas.width / rect.width, scaleY = ed.canvas.height / rect.height;
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return { x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY };
+  }
+  ed.canvas.addEventListener('pointerdown', (evt) => {
+    if(!ed.baseImage) return;
+    const p = canvasPoint(evt);
+    if(ed.tool === 'draw'){
+      ed.drawing = true; ed.ctx.beginPath(); ed.ctx.moveTo(p.x, p.y);
+      ed.ctx.strokeStyle = ed.color; ed.ctx.lineWidth = ed.brush; ed.ctx.lineCap = 'round';
+    } else if(ed.tool === 'select'){ ed.cropStart = p; ed.cropRect = null; }
+    else if(ed.tool === 'text'){
+      const text = $('#textInput').value.trim();
+      if(!text){ announce('Type text in the side panel first.'); return; }
+      ed.ctx.fillStyle = ed.color; ed.ctx.font = `${Math.max(20, ed.brush*4)}px Inter, sans-serif`;
+      ed.ctx.fillText(text, p.x, p.y); pushHistory();
+    }
+  });
+  ed.canvas.addEventListener('pointermove', (evt) => {
+    if(!ed.baseImage) return;
+    if(ed.tool === 'draw' && ed.drawing){ const p = canvasPoint(evt); ed.ctx.lineTo(p.x, p.y); ed.ctx.stroke(); }
+    else if(ed.tool === 'select' && ed.cropStart){
+      const p = canvasPoint(evt);
+      if(ed.history.length) ed.ctx.putImageData(ed.history[ed.history.length-1], 0, 0);
+      const x = Math.min(ed.cropStart.x, p.x), y = Math.min(ed.cropStart.y, p.y);
+      const w = Math.abs(p.x-ed.cropStart.x), h = Math.abs(p.y-ed.cropStart.y);
+      ed.ctx.save(); ed.ctx.strokeStyle = '#4C82F7'; ed.ctx.lineWidth = 2; ed.ctx.setLineDash([6,4]);
+      ed.ctx.strokeRect(x,y,w,h); ed.ctx.restore();
+      ed.cropRect = {x,y,w,h};
+    }
+  });
+  window.addEventListener('pointerup', () => {
+    if(ed.tool === 'draw' && ed.drawing){ ed.drawing = false; pushHistory(); }
+    if(ed.tool === 'select' && ed.cropStart){ ed.cropStart = null; }
+  });
+  $('#cropApplyBtn').addEventListener('click', () => {
+    if(!ed.cropRect || ed.cropRect.w < 4 || ed.cropRect.h < 4){ announce('Draw a crop rectangle first by dragging on the image.'); return; }
+    const {x,y,w,h} = ed.cropRect;
+    const imgData = ed.ctx.getImageData(x,y,w,h);
+    ed.canvas.width = w; ed.canvas.height = h; ed.ctx.putImageData(imgData, 0, 0);
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => { ed.baseImage = img; }; img.src = dataUrl;
+    ed.cropRect = null; pushHistory(); announce('Crop applied.');
+  });
+  $('#rotateBtn').addEventListener('click', () => {
+    if(!ed.baseImage) return;
+    const w = ed.canvas.width, h = ed.canvas.height;
+    const tmp = document.createElement('canvas'); tmp.width = h; tmp.height = w;
+    const tctx = tmp.getContext('2d'); tctx.translate(h/2, w/2); tctx.rotate(Math.PI/2); tctx.drawImage(ed.canvas, -w/2, -h/2);
+    ed.canvas.width = h; ed.canvas.height = w; ed.ctx.drawImage(tmp, 0, 0);
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => { ed.baseImage = img; pushHistory(); }; img.src = dataUrl;
+    announce('Rotated 90 degrees.');
+  });
+  $('#flipBtn').addEventListener('click', () => {
+    if(!ed.baseImage) return;
+    ed.ctx.save(); ed.ctx.translate(ed.canvas.width, 0); ed.ctx.scale(-1,1); ed.ctx.drawImage(ed.canvas, 0, 0); ed.ctx.restore();
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => { ed.baseImage = img; pushHistory(); }; img.src = dataUrl;
+    announce('Flipped horizontally.');
+  });
+  $('#editorUndo').addEventListener('click', () => {
+    if(ed.history.length < 2) return;
+    ed.history.pop();
+    const last = ed.history[ed.history.length-1];
+    ed.canvas.width = last.width; ed.canvas.height = last.height; ed.ctx.putImageData(last, 0, 0);
+    $('#editorUndo').disabled = ed.history.length < 2;
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => { ed.baseImage = img; }; img.src = dataUrl;
+    announce('Undo.');
+  });
+  $('#editorReset').addEventListener('click', () => {
+    if(ed.history.length){
+      const first = ed.history[0];
+      ed.canvas.width = first.width; ed.canvas.height = first.height; ed.ctx.putImageData(first, 0, 0);
+      ed.history = [first]; resetAdjustSliders();
+      const dataUrl = ed.canvas.toDataURL('image/png');
+      const img = new Image(); img.onload = () => { ed.baseImage = img; }; img.src = dataUrl;
+      announce('Reset to original.');
+    }
+  });
+  $('#autoEnhanceBtn').addEventListener('click', () => {
+    if(!ed.baseImage) return;
+    const w = ed.canvas.width, h = ed.canvas.height;
+    const imgData = ed.ctx.getImageData(0,0,w,h);
+    const d = imgData.data;
+    let min = 255, max = 0;
+    for(let i=0;i<d.length;i+=4){
+      const lum = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      if(lum < min) min = lum; if(lum > max) max = lum;
+    }
+    const range = Math.max(1, max - min);
+    for(let i=0;i<d.length;i+=4){
+      for(let c=0;c<3;c++){
+        let v = d[i+c]; v = (v - min) * (255/range); v = 128 + (v - 128) * 1.08;
+        d[i+c] = Math.max(0, Math.min(255, v));
+      }
+    }
+    ed.ctx.putImageData(imgData, 0, 0);
+    ed.ctx.save(); ed.ctx.filter = 'saturate(112%)'; ed.ctx.drawImage(ed.canvas, 0, 0); ed.ctx.restore();
+    const dataUrl = ed.canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => { ed.baseImage = img; pushHistory(); }; img.src = dataUrl;
+    announce('Smart enhance applied (local auto-levels).');
+  });
+  $('#editorBlurBg').addEventListener('click', async () => {
+    if(!ed.baseImage) return;
+    const seg = ensureSegmentation();
+    if(!seg){ announce('Background blur model unavailable — check your internet connection.'); return; }
+    announce('Running on-device segmentation…');
+    const w = ed.canvas.width, h = ed.canvas.height;
+    seg.onResults((results) => {
+      drawBlurredComposite(ed.ctx, w, h, results.image, results.segmentationMask, 14);
+      pushHistory();
+      const dataUrl = ed.canvas.toDataURL('image/png');
+      const img = new Image(); img.onload = () => { ed.baseImage = img; }; img.src = dataUrl;
+      announce('Background blurred.');
+    });
+    await seg.send({ image: ed.baseImage });
+  });
+
+  /* ================= Video Editor ================= */
+  const vEditor = { el: $('#videoEditTarget'), loaded:false, inTime:0, outTime:0, duration:0, name:'', rafId:null };
+  let vAudioGraph = null;
+  function ensureVideoAudioGraph(){
+    if(vAudioGraph) return vAudioGraph;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaElementSource(vEditor.el);
+    const gain = ctx.createGain();
+    const streamDest = ctx.createMediaStreamDestination();
+    source.connect(gain); gain.connect(ctx.destination); gain.connect(streamDest);
+    vAudioGraph = { ctx, source, gain, streamDest };
+    return vAudioGraph;
+  }
+  function updateVideoTrimLabel(){
+    $('#videoTrimInfo').textContent = `In ${fmtTime(vEditor.inTime)} · Out ${fmtTime(vEditor.outTime)} · Dur ${fmtTime(vEditor.outTime - vEditor.inTime)}`;
+  }
+  function loadVideoIntoEditor(url, name){
+    vEditor.el.src = url;
+    vEditor.el.onloadedmetadata = () => {
+      vEditor.loaded = true; vEditor.duration = vEditor.el.duration;
+      vEditor.inTime = 0; vEditor.outTime = vEditor.el.duration; vEditor.name = name;
+      updateVideoTrimLabel();
+      ['markInBtn','markOutBtn','resetTrimBtn','exportVideoBtn'].forEach(id => $('#'+id).disabled = false);
+      announce('Video loaded into editor.');
+    };
+  }
+  $('#videoUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    loadVideoIntoEditor(URL.createObjectURL(file), file.name);
+  });
+  $('#videoLoadClip').addEventListener('click', () => {
+    const clip = state.reel.find(r => ['video','screen-recording','edited-video'].includes(r.type));
+    if(clip) loadVideoIntoEditor(clip.url, clip.name);
+    else announce('No video in the reel yet. Record something first.');
+  });
+  $('#markInBtn').addEventListener('click', () => { vEditor.inTime = vEditor.el.currentTime; if(vEditor.inTime >= vEditor.outTime) vEditor.outTime = vEditor.duration; updateVideoTrimLabel(); announce('In point marked.'); });
+  $('#markOutBtn').addEventListener('click', () => { vEditor.outTime = vEditor.el.currentTime; if(vEditor.outTime <= vEditor.inTime) vEditor.inTime = 0; updateVideoTrimLabel(); announce('Out point marked.'); });
+  $('#resetTrimBtn').addEventListener('click', () => { vEditor.inTime = 0; vEditor.outTime = vEditor.duration; updateVideoTrimLabel(); announce('Trim reset to full clip.'); });
+  ['vidBrightness','vidContrast','vidSaturation','vidPreset'].forEach(id => {
+    $('#'+id).addEventListener('input', () => {
+      $('#vidBrightnessVal').textContent = $('#vidBrightness').value + '%';
+      $('#vidContrastVal').textContent = $('#vidContrast').value + '%';
+      $('#vidSaturationVal').textContent = $('#vidSaturation').value + '%';
+    });
+  });
+  $('#vidVolume').addEventListener('input', () => { $('#vidVolumeVal').textContent = $('#vidVolume').value + '%'; });
+  function buildVideoFilterString(){
+    const b = $('#vidBrightness').value, c = $('#vidContrast').value, s = $('#vidSaturation').value, preset = $('#vidPreset').value;
+    let f = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+    if(preset !== 'none') f += ' ' + preset;
+    return f;
+  }
+  $('#exportVideoBtn').addEventListener('click', () => {
+    if(!vEditor.loaded) return;
+    if(vEditor.outTime <= vEditor.inTime){ announce('Set an out point after the in point.'); return; }
+    const video = vEditor.el;
+    ensureVideoAudioGraph();
+    if(vAudioGraph.ctx.state === 'suspended') vAudioGraph.ctx.resume();
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280; canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    const canvasStream = canvas.captureStream(30);
+    const combined = new MediaStream([...canvasStream.getVideoTracks(), ...vAudioGraph.streamDest.stream.getAudioTracks()]);
+    const qmap = { low: 800000, medium: 2500000, high: 5000000 };
+    let mimeType = 'video/webm;codecs=vp9,opus';
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+    const rec = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: qmap[$('#vidExportQuality').value] || qmap.medium });
+    let chunks = [];
+    rec.ondataavailable = (e) => { if(e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      video.pause(); video.playbackRate = 1;
+      cancelAnimationFrame(vEditor.rafId);
+      const blob = new Blob(chunks, {type:'video/webm'});
+      const url = URL.createObjectURL(blob);
+      addToReel({ type:'edited-video', url, blob, name:`edited-video-${Date.now()}.webm` });
+      $('#videoExportStatus').style.display = 'none';
+      announce('Video export complete and added to reel.');
+    };
+    video.muted = $('#vidMute').checked;
+    vAudioGraph.gain.gain.value = video.muted ? 0 : Number($('#vidVolume').value)/100;
+    video.playbackRate = Number($('#vidSpeed').value);
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      $('#videoExportStatus').style.display = 'block';
+      $('#videoExportStatus').textContent = 'Exporting… 0%';
+      rec.start();
+      video.play();
+      function frame(){
+        if(video.currentTime >= vEditor.outTime || video.ended){
+          if(rec.state === 'recording') rec.stop();
+          return;
+        }
+        ctx.filter = buildVideoFilterString();
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.filter = 'none';
+        const pct = Math.min(100, Math.round(((video.currentTime - vEditor.inTime)/(vEditor.outTime - vEditor.inTime))*100));
+        $('#videoExportStatus').textContent = `Exporting… ${pct}%`;
+        vEditor.rafId = requestAnimationFrame(frame);
+      }
+      frame();
+    };
+    video.addEventListener('seeked', onSeeked);
+    video.currentTime = vEditor.inTime;
+  });
+
+  /* ================= Audio Editor ================= */
+  const aEditor = { el: $('#audioEditTarget'), loaded:false, inTime:0, outTime:0, duration:0, name:'' };
+  let aAudioGraph = null;
+  function ensureAudioGraph(){
+    if(aAudioGraph) return aAudioGraph;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = ctx.createMediaElementSource(aEditor.el);
+    const gain = ctx.createGain();
+    const streamDest = ctx.createMediaStreamDestination();
+    source.connect(gain); gain.connect(ctx.destination); gain.connect(streamDest);
+    aAudioGraph = { ctx, source, gain, streamDest };
+    return aAudioGraph;
+  }
+  function updateAudioTrimLabel(){
+    $('#audioTrimInfo').textContent = `In ${fmtTime(aEditor.inTime)} · Out ${fmtTime(aEditor.outTime)} · Dur ${fmtTime(aEditor.outTime - aEditor.inTime)}`;
+  }
+  function loadAudioIntoEditor(url, name){
+    aEditor.el.src = url;
+    aEditor.el.onloadedmetadata = () => {
+      aEditor.loaded = true; aEditor.duration = aEditor.el.duration;
+      aEditor.inTime = 0; aEditor.outTime = aEditor.el.duration; aEditor.name = name;
+      updateAudioTrimLabel();
+      ['audioMarkInBtn','audioMarkOutBtn','audioResetTrimBtn','exportAudioBtn'].forEach(id => $('#'+id).disabled = false);
+      announce('Audio loaded into editor.');
+    };
+  }
+  $('#audioUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    loadAudioIntoEditor(URL.createObjectURL(file), file.name);
+  });
+  $('#audioLoadClip').addEventListener('click', () => {
+    const clip = state.reel.find(r => ['audio','edited-audio'].includes(r.type));
+    if(clip) loadAudioIntoEditor(clip.url, clip.name);
+    else announce('No audio in the reel yet. Record something first.');
+  });
+  $('#audioMarkInBtn').addEventListener('click', () => { aEditor.inTime = aEditor.el.currentTime; if(aEditor.inTime >= aEditor.outTime) aEditor.outTime = aEditor.duration; updateAudioTrimLabel(); announce('In point marked.'); });
+  $('#audioMarkOutBtn').addEventListener('click', () => { aEditor.outTime = aEditor.el.currentTime; if(aEditor.outTime <= aEditor.inTime) aEditor.inTime = 0; updateAudioTrimLabel(); announce('Out point marked.'); });
+  $('#audioResetTrimBtn').addEventListener('click', () => { aEditor.inTime = 0; aEditor.outTime = aEditor.duration; updateAudioTrimLabel(); announce('Trim reset to full clip.'); });
+  $('#audVolume').addEventListener('input', () => { $('#audVolumeVal').textContent = $('#audVolume').value + '%'; });
+  $('#audFadeIn').addEventListener('input', () => { $('#audFadeInVal').textContent = Number($('#audFadeIn').value).toFixed(1) + 's'; });
+  $('#audFadeOut').addEventListener('input', () => { $('#audFadeOutVal').textContent = Number($('#audFadeOut').value).toFixed(1) + 's'; });
+  $('#exportAudioBtn').addEventListener('click', () => {
+    if(!aEditor.loaded) return;
+    if(aEditor.outTime <= aEditor.inTime){ announce('Set an out point after the in point.'); return; }
+    const audio = aEditor.el;
+    ensureAudioGraph();
+    if(aAudioGraph.ctx.state === 'suspended') aAudioGraph.ctx.resume();
+    let mimeType = 'audio/webm;codecs=opus';
+    if(!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/webm';
+    const qmap = { low: 64000, medium: 128000, high: 192000 };
+    const rec = new MediaRecorder(aAudioGraph.streamDest.stream, { mimeType, audioBitsPerSecond: qmap[$('#audExportQuality').value] || qmap.medium });
+    let chunks = [];
+    rec.ondataavailable = (e) => { if(e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      audio.pause(); audio.playbackRate = 1;
+      const blob = new Blob(chunks, {type:'audio/webm'});
+      const url = URL.createObjectURL(blob);
+      addToReel({ type:'edited-audio', url, blob, name:`edited-audio-${Date.now()}.webm` });
+      $('#audioExportStatus').style.display = 'none';
+      announce('Audio export complete and added to reel.');
+    };
+    audio.playbackRate = Number($('#audSpeed').value);
+    const onSeeked = () => {
+      audio.removeEventListener('seeked', onSeeked);
+      const ctx = aAudioGraph.ctx;
+      const t0 = ctx.currentTime;
+      const vol = Number($('#audVolume').value)/100;
+      const fadeIn = Number($('#audFadeIn').value);
+      const fadeOut = Number($('#audFadeOut').value);
+      const dur = (aEditor.outTime - aEditor.inTime) / audio.playbackRate;
+      const g = aAudioGraph.gain.gain;
+      g.cancelScheduledValues(t0);
+      if(fadeIn > 0){ g.setValueAtTime(0, t0); g.linearRampToValueAtTime(vol, t0 + Math.min(fadeIn, dur/2)); }
+      else g.setValueAtTime(vol, t0);
+      if(fadeOut > 0){
+        const foStart = t0 + dur - Math.min(fadeOut, dur/2);
+        g.setValueAtTime(vol, foStart);
+        g.linearRampToValueAtTime(0, t0 + dur);
+      }
+      rec.start(); audio.play();
+      $('#audioExportStatus').style.display = 'block';
+      $('#audioExportStatus').textContent = 'Exporting…';
+      const checkInterval = setInterval(() => {
+        if(audio.currentTime >= aEditor.outTime || audio.ended){
+          clearInterval(checkInterval); audio.pause();
+          if(rec.state === 'recording') rec.stop();
+        } else {
+          const pct = Math.min(100, Math.round(((audio.currentTime - aEditor.inTime)/(aEditor.outTime - aEditor.inTime))*100));
+          $('#audioExportStatus').textContent = `Exporting… ${pct}%`;
+        }
+      }, 150);
+    };
+    audio.addEventListener('seeked', onSeeked);
+    audio.currentTime = aEditor.inTime;
+  });
+
+  /* ================= Editor sub-tabs ================= */
+  function setEditSubMode(sub){
+    state.editSub = sub;
+    ['photo','video','audio'].forEach(s => {
+      $('#'+s+'EditorPanel').hidden = (s !== sub);
+      $(`.subtab[data-edit="${s}"]`).setAttribute('aria-selected', String(s === sub));
+    });
+    $('#sidePhotoPanel').style.display = sub === 'photo' ? 'block' : 'none';
+    $('#sideVideoPanel').style.display = sub === 'video' ? 'block' : 'none';
+    $('#sideAudioPanel').style.display = sub === 'audio' ? 'block' : 'none';
+  }
+  $$('.subtab').forEach(btn => btn.addEventListener('click', () => { setEditSubMode(btn.dataset.edit); announce(`${btn.dataset.edit} editor selected.`); }));
+
+  /* ================= High contrast toggle ================= */
+  $('#hcToggle').addEventListener('click', () => {
+    state.highContrast = !state.highContrast;
+    document.documentElement.setAttribute('data-theme', state.highContrast ? 'hc' : 'default');
+    $('#hcToggle').setAttribute('aria-pressed', String(state.highContrast));
+    announce(state.highContrast ? 'High contrast mode on.' : 'High contrast mode off.');
+  });
+
+  /* ================= Help / shortcuts ================= */
+  $('#helpToggle').addEventListener('click', () => {
+    announce('Shortcuts: R toggles recording, S takes a snapshot, B toggles background blur, Escape stops the preview or closes a dialog.');
+    alert('Keyboard shortcuts:\n\nR — Start/stop recording\nS — Snapshot\nB — Toggle AI background blur\nEsc — Stop preview / close preview dialog');
+  });
+  document.addEventListener('keydown', (e) => {
+    if($('#previewModal').classList.contains('show')){
+      if(e.key === 'Escape') closePreview();
+      return;
+    }
+    const tag = (e.target && e.target.tagName) || '';
+    if(['INPUT','SELECT','TEXTAREA'].includes(tag)) return;
+    if(e.key === 'r' || e.key === 'R'){ if(!els.btnRecord.disabled){ state.recording ? stopRecording() : startRecording(); } }
+    else if(e.key === 's' || e.key === 'S'){ if(!els.btnSnapshot.disabled) els.btnSnapshot.click(); }
+    else if(e.key === 'b' || e.key === 'B'){ if(state.mode === 'camera'){ els.blurToggle.checked = !els.blurToggle.checked; els.blurToggle.dispatchEvent(new Event('change')); } }
+    else if(e.key === 'Escape'){ if(!els.btnStop.disabled) stopPreview(); }
+  });
+
+  /* ================= Init ================= */
+  populateDevices();
+  setMode('camera');
+  announce('Studio ready. Choose a mode from the left, then press Start.');
+})();
+</script>
+</body>
+</html>

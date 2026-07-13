@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURUX — AI &amp; Infrastructure Farm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0b0f;
+    --surface: #131620;
+    --surface-2: #1a1e2a;
+    --line: rgba(237,234,226,0.09);
+    --line-strong: rgba(237,234,226,0.18);
+    --text: #edeae2;
+    --text-dim: #8b8f9c;
+    --gold: #c9a227;
+    --gold-bright: #e6c451;
+    --green: #4f7a6b;
+    --radius: 4px;
+    --maxw: 1180px;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3{
+    font-family: 'Space Grotesk', sans-serif;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  a{ color: inherit; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; }
+  .wrap{ max-width: var(--maxw); margin: 0 auto; padding: 0 32px; }
+
+  .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .eyebrow::before{ content: "//"; color: var(--text-dim); }
+
+  ::selection{ background: var(--gold); color: #0a0b0f; }
+  :focus-visible{ outline: 2px solid var(--gold-bright); outline-offset: 3px; }
+
+  /* ---------- NAV ---------- */
+  header{
+    position: sticky; top:0; z-index: 100;
+    background: rgba(10,11,15,0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height: 76px;
+  }
+  .logo{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:22px; letter-spacing: 0.02em;
+    display:flex; align-items:center; gap:10px;
+    text-decoration:none;
+  }
+  .logo .mark{
+    width: 26px; height: 26px; position:relative; flex-shrink:0;
+  }
+  .logo .mark svg{ width:100%; height:100%; display:block; }
+  .navlinks{ display:flex; align-items:center; gap: 36px; }
+  .navlinks a{
+    text-decoration:none; color: var(--text-dim);
+    font-size: 14.5px; font-weight:500;
+    transition: color .2s ease;
+  }
+  .navlinks a:hover{ color: var(--text); }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding: 11px 22px;
+    border-radius: var(--radius);
+    font-weight: 600; font-size: 14px;
+    text-decoration:none; cursor:pointer;
+    border: 1px solid transparent;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .btn-gold{ background: var(--gold); color: #0a0b0f; }
+  .btn-gold:hover{ background: var(--gold-bright); transform: translateY(-1px); }
+  .btn-ghost{ background:transparent; color:var(--text); border-color: var(--line-strong); }
+  .btn-ghost:hover{ border-color: var(--gold); color: var(--gold-bright); }
+  .navcta{ display:flex; gap:12px; }
+  .burger{ display:none; background:none; border:none; color:var(--text); font-size:24px; cursor:pointer; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    overflow:hidden;
+    border-bottom: 1px solid var(--line);
+    padding: 108px 0 96px;
+  }
+  .field-grid{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent 85%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent 85%);
+  }
+  .field-sweep{
+    position:absolute; inset:0;
+    background: radial-gradient(560px 420px at var(--sx,20%) var(--sy,30%), rgba(201,162,39,0.16), transparent 65%);
+    animation: sweep 16s ease-in-out infinite;
+  }
+  @keyframes sweep{
+    0%   { --sx: 8%;  --sy: 20%; }
+    25%  { --sx: 70%; --sy: 10%; }
+    50%  { --sx: 88%; --sy: 60%; }
+    75%  { --sx: 35%; --sy: 78%; }
+    100% { --sx: 8%;  --sy: 20%; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .field-sweep{ animation: none; }
+  }
+  .hero-inner{ position:relative; z-index:2; max-width: 760px; }
+  .hero h1{
+    font-size: clamp(38px, 5.4vw, 64px);
+    font-weight: 700;
+    line-height: 1.06;
+    margin-bottom: 26px;
+  }
+  .hero h1 .accent{ color: var(--gold); }
+  .hero p.lead{
+    font-size: 18px; color: var(--text-dim);
+    max-width: 560px; margin-bottom: 38px;
+  }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; }
+  .stat-row{
+    display:flex; gap:48px; margin-top: 72px; flex-wrap:wrap;
+    position:relative; z-index:2;
+  }
+  .stat b{
+    display:block; font-family:'Space Grotesk',sans-serif;
+    font-size: 28px; color: var(--text);
+  }
+  .stat span{ font-size:13px; color:var(--text-dim); font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- GENERIC SECTION ---------- */
+  section{ padding: 96px 0; border-bottom: 1px solid var(--line); }
+  .section-head{ max-width: 620px; margin-bottom: 56px; }
+  .section-head h2{ font-size: clamp(28px,3.4vw,40px); font-weight:600; margin-bottom:14px; }
+  .section-head p{ color: var(--text-dim); font-size:16px; }
+
+  /* ---------- AUTH ---------- */
+  #auth{ background: var(--surface); }
+  .auth-shell{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items:center;
+  }
+  .auth-copy .eyebrow{ margin-bottom: 18px; }
+  .auth-copy h2{ font-size: clamp(28px,3.2vw,38px); margin-bottom:18px; font-weight:600; }
+  .auth-copy p{ color: var(--text-dim); margin-bottom: 26px; max-width: 420px; }
+  .auth-points{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:14px; }
+  .auth-points li{ display:flex; gap:12px; font-size:14.5px; color:var(--text); align-items:flex-start; }
+  .auth-points li::before{
+    content:""; width:6px; height:6px; margin-top:8px; background:var(--gold);
+    flex-shrink:0;
+  }
+
+  .auth-card{
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 8px;
+    max-width: 420px;
+  }
+  .tabs{ display:flex; background: var(--surface-2); border-radius:6px; padding:4px; margin-bottom: 24px; }
+  .tab{
+    flex:1; text-align:center; padding: 10px 0; border-radius:5px;
+    font-size:14px; font-weight:600; cursor:pointer; color: var(--text-dim);
+    transition: all .2s ease; border:none; background:none; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .tab.active{ background: var(--gold); color:#0a0b0f; }
+  .auth-form{ padding: 6px 16px 20px; display:none; flex-direction:column; gap:16px; }
+  .auth-form.active{ display:flex; }
+  .field{ display:flex; flex-direction:column; gap:7px; }
+  .field label{ font-size:12.5px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; }
+  .field input{
+    background: var(--surface); border:1px solid var(--line-strong); color:var(--text);
+    padding: 12px 14px; border-radius: var(--radius); font-size:14.5px;
+    font-family:'IBM Plex Sans',sans-serif;
+  }
+  .field input:focus{ outline:none; border-color: var(--gold); }
+  .form-note{ font-size:12.5px; color:var(--text-dim); text-align:center; }
+  .form-note a{ color: var(--gold-bright); text-decoration:none; cursor:pointer; }
+  .submit-btn{ width:100%; border:none; }
+  .demo-flag{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color: var(--text-dim);
+    text-align:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-strong);
+  }
+
+  /* ---------- SERVICES ---------- */
+  .services-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line);
+  }
+  .service-card{
+    background: var(--bg); padding: 34px 30px; min-height: 220px;
+    display:flex; flex-direction:column; gap: 16px;
+    transition: background .2s ease;
+  }
+  .service-card:hover{ background: var(--surface); }
+  .service-icon{ width:34px; height:34px; color: var(--gold); }
+  .service-icon svg{ width:100%; height:100%; }
+  .service-card h3{ font-size:18px; font-weight:600; }
+  .service-card p{ font-size:14.5px; color:var(--text-dim); flex:1; }
+  .service-tag{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--green); }
+
+  .service-card.featured{
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+    background: var(--surface);
+    min-height: auto;
+    padding: 32px 34px;
+  }
+  .service-card.featured .service-icon{ width:52px; height:52px; flex-shrink:0; color: var(--gold-bright); }
+  .service-card.featured h3{ font-size: 21px; }
+  .service-card.featured .service-copy{ flex:1; }
+  .service-card.featured .service-copy p{ margin: 6px 0 8px; }
+  @media (max-width: 700px){
+    .service-card.featured{ flex-direction: column; align-items: flex-start; text-align: left; }
+  }
+
+  /* ---------- REVIEWS ---------- */
+  #reviews{ background: var(--surface); }
+  .reviews-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .review-card{
+    background: var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+    padding: 30px; display:flex; flex-direction:column; gap:20px;
+  }
+  .stars{ color: var(--gold); font-size:14px; letter-spacing:2px; }
+  .review-card p{ font-size:15px; color:var(--text); flex:1; }
+  .review-person{ display:flex; align-items:center; gap:12px; }
+  .avatar{
+    width:38px; height:38px; border-radius:50%; background: var(--surface-2);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:600; color: var(--gold); font-size:14px;
+    border: 1px solid var(--line-strong);
+  }
+  .review-person b{ font-size:14px; display:block; }
+  .review-person span{ font-size:12.5px; color:var(--text-dim); }
+
+  /* ---------- HIRE ---------- */
+  .hire-shell{ display:grid; grid-template-columns: 0.9fr 1.1fr; gap: 64px; }
+  .hire-copy h2{ font-size: clamp(28px,3.2vw,38px); font-weight:600; margin-bottom:18px; }
+  .hire-copy p{ color:var(--text-dim); margin-bottom:28px; max-width:420px; }
+  .hire-list{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:20px; }
+  .hire-list li{ display:flex; gap:16px; }
+  .hire-num{ font-family:'IBM Plex Mono',monospace; color:var(--gold); font-size:13px; padding-top:2px; }
+  .hire-list b{ display:block; font-size:15px; margin-bottom:4px; }
+  .hire-list span{ font-size:14px; color:var(--text-dim); }
+
+  .hire-form{
+    background: var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding: 32px;
+  }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .form-grid .field.full{ grid-column: 1 / -1; }
+  .field select, .field textarea{
+    background: var(--bg); border:1px solid var(--line-strong); color:var(--text);
+    padding: 12px 14px; border-radius: var(--radius); font-size:14.5px;
+    font-family:'IBM Plex Sans',sans-serif; resize: vertical;
+  }
+  .field select:focus, .field textarea:focus{ outline:none; border-color:var(--gold); }
+  .hire-form .submit-btn{ margin-top: 22px; }
+  .success-msg{
+    display:none; align-items:center; gap:10px; margin-top:18px;
+    font-size:14px; color: var(--green); font-family:'IBM Plex Mono',monospace;
+  }
+  .success-msg.show{ display:flex; }
+
+  /* ---------- ASK ---------- */
+  #ask{ background: var(--surface); }
+  .ask-shell{ display:grid; grid-template-columns: 0.9fr 1.1fr; gap: 64px; align-items:start; }
+
+  .chat-card{
+    background: var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+    display:flex; flex-direction:column; height: 480px; overflow:hidden;
+  }
+  .chat-header{
+    padding: 14px 20px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
+  }
+  .chat-header .dot{ width:8px; height:8px; border-radius:50%; background: var(--green); flex-shrink:0; }
+  .chat-messages{
+    flex:1; overflow-y:auto; padding: 20px; display:flex; flex-direction:column; gap:14px;
+  }
+  .msg{ max-width:82%; padding: 11px 14px; border-radius:10px; font-size:14px; line-height:1.5; }
+  .msg.bot{ background: var(--surface-2); color: var(--text); align-self:flex-start; border-bottom-left-radius:2px; }
+  .msg.user{ background: var(--gold); color:#0a0b0f; align-self:flex-end; border-bottom-right-radius:2px; font-weight:500; }
+  .msg.typing{ display:flex; gap:5px; align-items:center; padding:14px; }
+  .msg.typing span{
+    width:6px; height:6px; border-radius:50%; background: var(--text-dim);
+    animation: typingDot 1.2s ease-in-out infinite;
+  }
+  .msg.typing span:nth-child(2){ animation-delay:.15s; }
+  .msg.typing span:nth-child(3){ animation-delay:.3s; }
+  @keyframes typingDot{ 0%,60%,100%{ opacity:.3; transform:translateY(0);} 30%{ opacity:1; transform:translateY(-3px);} }
+
+  .chat-suggestions{ display:flex; flex-wrap:wrap; gap:8px; padding: 0 20px 14px; flex-shrink:0; }
+  .chip{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:7px 12px;
+    border:1px solid var(--line-strong); border-radius:20px; cursor:pointer;
+    color:var(--text-dim); background:none; transition: all .2s ease;
+  }
+  .chip:hover{ border-color: var(--gold); color: var(--gold-bright); }
+  .chat-input-row{ display:flex; gap:10px; padding: 16px 20px; border-top:1px solid var(--line); flex-shrink:0; }
+  .chat-input-row input{
+    flex:1; background: var(--surface); border:1px solid var(--line-strong); color:var(--text);
+    padding: 12px 14px; border-radius: var(--radius); font-size:14.5px; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .chat-input-row input:focus{ outline:none; border-color: var(--gold); }
+  .chat-input-row button{ border:none; flex-shrink:0; }
+
+  /* ---------- ABOUT ---------- */
+  #about{ border-bottom:none; }
+  .contact-shell{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 64px; }
+  .about-copy p{ color: var(--text-dim); margin-bottom:18px; max-width: 520px; }
+  .about-copy h2{ font-size: clamp(28px,3.2vw,38px); font-weight:600; margin-bottom:22px; }
+  .founders{ display:flex; gap:28px; margin-top:32px; flex-wrap:wrap; }
+  .founder{ display:flex; align-items:center; gap:12px; }
+  .founder .avatar{ width:44px; height:44px; font-size:15px; }
+  .founder b{ font-size:14.5px; display:block; }
+  .founder span{ font-size:12.5px; color:var(--text-dim); }
+
+  .contact-card{
+    background: var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding:32px;
+    display:flex; flex-direction:column; gap:18px;
+  }
+
+  footer{ padding: 32px 0; }
+  .footer-inner{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .footer-inner p{ font-size:13px; color:var(--text-dim); margin:0; font-family:'IBM Plex Mono',monospace; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px){
+    .navlinks{
+      position: fixed; top:76px; left:0; right:0; background: var(--bg);
+      flex-direction:column; align-items:flex-start; padding: 24px 32px; gap:20px;
+      border-bottom: 1px solid var(--line);
+      transform: translateY(-140%); transition: transform .25s ease; z-index:99;
+    }
+    .navlinks.open{ transform: translateY(0); }
+    .burger{ display:block; }
+    .navcta .btn-ghost{ display:none; }
+    .auth-shell, .hire-shell, .contact-shell, .ask-shell{ grid-template-columns: 1fr; }
+    .services-grid{ grid-template-columns: 1fr 1fr; }
+    .reviews-grid{ grid-template-columns: 1fr; }
+    .form-grid{ grid-template-columns: 1fr; }
+    .chat-card{ height: 420px; }
+  }
+  @media (max-width: 600px){
+    .wrap{ padding: 0 20px; }
+    .services-grid{ grid-template-columns: 1fr; }
+    .stat-row{ gap: 30px; }
+    section{ padding: 64px 0; }
+  }
+
+  /* ---------- ROBOT MASCOT ---------- */
+  #robot{
+    position: fixed;
+    right: 26px;
+    top: 50%;
+    width: 148px;
+    z-index: 60;
+    pointer-events: none;
+    filter: drop-shadow(0 14px 28px rgba(0,0,0,0.55));
+    transform: translateY(-50%);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  #robot.bump{ transform: translateY(-50%) scale(1.08); }
+  #robot svg{ width:100%; height:100%; display:block; overflow: visible; }
+
+  .robot-body{ animation: robotFloat 4.2s ease-in-out infinite; transform-origin: center; }
+  @keyframes robotFloat{
+    0%,100%{ transform: translateY(0) rotate(0deg); }
+    50%{ transform: translateY(-6px) rotate(-1deg); }
+  }
+
+  #robot .antenna-core{
+    animation: coreGlow 2.4s ease-in-out infinite;
+    transform-origin: center;
+  }
+  #robot .chest-core{
+    animation: coreGlow 3.1s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes coreGlow{
+    0%,100%{ opacity: .65; }
+    50%{ opacity: 1; }
+  }
+
+  #robot .think-dot{ animation: thinkPulse 1.6s ease-in-out infinite; }
+  #robot .think-dot:nth-child(2){ animation-delay: .2s; }
+  #robot .think-dot:nth-child(3){ animation-delay: .4s; }
+  @keyframes thinkPulse{
+    0%,100%{ opacity: .25; transform: translateY(0); }
+    50%{ opacity: 1; transform: translateY(-2px); }
+  }
+
+  #robot .expr{ display:none; }
+  #robot .expr.is-active{ display:block; }
+
+  .robot-bubble{
+    position: absolute;
+    top: -8px;
+    right: 100%;
+    margin-right: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .robot-bubble.show{ opacity: 1; transform: translateY(0); }
+  .robot-bubble::after{
+    content:"";
+    position:absolute; top: 16px; right:-6px;
+    width:10px; height:10px;
+    background: var(--surface);
+    border-right:1px solid var(--line-strong);
+    border-bottom:1px solid var(--line-strong);
+    transform: rotate(-45deg);
+  }
+
+  @media (max-width: 900px){
+    #robot{ width: 100px; right: 14px; }
+    .robot-bubble{ font-size: 11px; padding:6px 10px; }
+  }
+  @media (max-width: 560px){
+    #robot{
+      width: 68px; opacity: 0.92;
+      top: auto; bottom: 16px; right: 12px;
+      transform: none;
+    }
+    #robot.bump{ transform: scale(1.08); }
+    .robot-bubble{ display:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #robot, #robot.bump{ transition:none; }
+    .robot-body{ animation:none; }
+    #robot .antenna-core, #robot .chest-core, #robot .think-dot{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="#home" class="logo">
+      <span class="mark">
+        <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="24" height="24" rx="2" stroke="#c9a227" stroke-width="1.4"/>
+          <path d="M13 5L20 20H16.5L13 12.5L9.5 20H6L13 5Z" fill="#c9a227"/>
+        </svg>
+      </span>
+      AURUX
+    </a>
+    <div class="navlinks" id="navlinks">
+      <a href="#services">Services</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#hire">Hire</a>
+      <a href="#ask">Ask</a>
+      <a href="#about">About</a>
+    </div>
+    <div class="navcta">
+      <a href="#auth" class="btn btn-ghost">Log in / Sign up</a>
+      <button class="burger" id="burgerBtn" aria-label="Toggle menu">☰</button>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="home" style="border-bottom:1px solid var(--line);">
+  <div class="field-grid"></div>
+  <div class="field-sweep"></div>
+  <div class="wrap hero-inner">
+    <div class="eyebrow">AI Studio &amp; Infrastructure Farm</div>
+    <h1>We farm the infrastructure.<br>You harvest the <span class="accent">intelligence</span>.</h1>
+    <p class="lead">AURUX pairs a full-stack AI development studio with our own compute farm — so the models we build for you run on infrastructure we grow, tend, and control ourselves.</p>
+    <div class="hero-actions">
+      <a href="#hire" class="btn btn-gold">Hire AURUX</a>
+      <a href="#services" class="btn btn-ghost">See what we build</a>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><b>24/7</b><span>FARM UPTIME</span></div>
+      <div class="stat"><b>&lt;48H</b><span>AVG. RESPONSE TIME</span></div>
+      <div class="stat"><b>100%</b><span>IN-HOUSE COMPUTE</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- AUTH -->
+<section id="auth">
+  <div class="wrap auth-shell">
+    <div class="auth-copy">
+      <div class="eyebrow">Account</div>
+      <h2>One account, the whole farm.</h2>
+      <p>Track project requests, see infrastructure status, and message your AURUX team from a single dashboard.</p>
+      <ul class="auth-points">
+        <li>See live status of your hosted models and servers</li>
+        <li>Message your assigned engineering team directly</li>
+        <li>Review invoices, contracts, and project timelines</li>
+      </ul>
+    </div>
+
+    <div class="auth-card">
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Log in</button>
+        <button class="tab" data-tab="signup">Sign up</button>
+      </div>
+
+      <form class="auth-form active" id="login-form" onsubmit="return handleAuth(event,'login')">
+        <div class="field">
+          <label for="login-email">EMAIL</label>
+          <input id="login-email" type="email" placeholder="you@company.com" required>
+        </div>
+        <div class="field">
+          <label for="login-pass">PASSWORD</label>
+          <input id="login-pass" type="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn btn-gold submit-btn" type="submit">Log in</button>
+        <p class="form-note">No account yet? <a onclick="switchTab('signup')">Sign up instead</a></p>
+      </form>
+
+      <form class="auth-form" id="signup-form" onsubmit="return handleAuth(event,'signup')">
+        <div class="field">
+          <label for="signup-name">FULL NAME</label>
+          <input id="signup-name" type="text" placeholder="Jane Doe" required>
+        </div>
+        <div class="field">
+          <label for="signup-email">EMAIL</label>
+          <input id="signup-email" type="email" placeholder="you@company.com" required>
+        </div>
+        <div class="field">
+          <label for="signup-pass">PASSWORD</label>
+          <input id="signup-pass" type="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn btn-gold submit-btn" type="submit">Create account</button>
+        <p class="form-note">Already with us? <a onclick="switchTab('login')">Log in instead</a></p>
+      </form>
+
+      <p class="demo-flag" id="auth-status">DEMO MODE — forms are not yet connected to a live backend</p>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Services</div>
+      <h2>Everything from your first sketch to a running AI agent.</h2>
+      <p>Design, development, marketing, and AI — built and hosted end to end by the AURUX team.</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="8.5" x2="21" y2="8.5"/><circle cx="6.3" cy="6.3" r="0.5" fill="currentColor"/><circle cx="8.6" cy="6.3" r="0.5" fill="currentColor"/></svg></div>
+        <h3>Web Design &amp; Web Development</h3>
+        <p>Fast, responsive websites and web apps — designed and coded in-house, built to actually convert.</p>
+        <span class="service-tag">WEB</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10v4h4l6 4V6l-6 4H3z"/><path d="M17.5 8.5a5 5 0 010 7"/></svg></div>
+        <h3>Digital Marketing &amp; Advertising</h3>
+        <p>Campaigns across search, social, and paid media, planned around real growth targets, not vanity metrics.</p>
+        <span class="service-tag">MARKETING</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5z"/><path d="M3 7l9 5 9-5M12 12v9"/></svg></div>
+        <h3>Digital Product Design</h3>
+        <p>From concept to launch — apps, platforms, and digital tools shaped around how people will actually use them.</p>
+        <span class="service-tag">PRODUCT</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/></svg></div>
+        <h3>Ad Making</h3>
+        <p>Scroll-stopping video and static ad creative, cut and produced for the platforms your audience is actually on.</p>
+        <span class="service-tag">CREATIVE</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></div>
+        <h3>Brand Logo, Banners &amp; Posters</h3>
+        <p>Smart, premium brand identity — logos, banners, posters, and everything that carries your look.</p>
+        <span class="service-tag">BRANDING</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></div>
+        <h3>AI Integration</h3>
+        <p>Wiring AI directly into your existing tools and workflows, so it fits the way your team already works.</p>
+        <span class="service-tag">AI</span>
+      </div>
+
+      <div class="service-card featured">
+        <div class="service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="7" width="16" height="11" rx="3"/><circle cx="9" cy="12.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="1.1" fill="currentColor" stroke="none"/><path d="M12 3v4"/><circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/></svg></div>
+        <div class="service-copy">
+          <h3>Custom GPTs &amp; Copilot Agent Creation</h3>
+          <p>We design and build custom GPTs and Copilot agents trained on your business — answering questions, automating tasks, and plugging straight into the tools you already use.</p>
+          <span class="service-tag">AI AGENTS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Reviews</div>
+      <h2>What early partners are saying.</h2>
+      <p>Sample feedback shown for this demo — real client reviews will replace these.</p>
+    </div>
+
+    <div class="reviews-grid">
+      <div class="review-card">
+        <div class="stars">★★★★★</div>
+        <p>"They didn't just hand us a model and disappear. AURUX kept hosting it, kept monitoring it, and answered every call."</p>
+        <div class="review-person">
+          <div class="avatar">RH</div>
+          <div><b>Rahim H.</b><span>Operations Lead, retail logistics</span></div>
+        </div>
+      </div>
+      <div class="review-card">
+        <div class="stars">★★★★★</div>
+        <p>"Having the AI team and the infrastructure team be the same people meant nothing ever got stuck in a handoff."</p>
+        <div class="review-person">
+          <div class="avatar">SA</div>
+          <div><b>Sadia A.</b><span>Founder, edtech startup</span></div>
+        </div>
+      </div>
+      <div class="review-card">
+        <div class="stars">★★★★☆</div>
+        <p>"Fast to respond, straightforward about timelines, and upfront when something wasn't going to work."</p>
+        <div class="review-person">
+          <div class="avatar">TK</div>
+          <div><b>Tanvir K.</b><span>CTO, fintech</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HIRE -->
+<section id="hire">
+  <div class="wrap hire-shell">
+    <div class="hire-copy">
+      <div class="eyebrow">Hire</div>
+      <h2>Tell us what you're building.</h2>
+      <p>Fill out the brief and we'll reply with a scoped plan — usually within two business days.</p>
+      <ul class="hire-list">
+        <li><span class="hire-num">A</span><div><b>We read your brief</b><span>A founder reviews every request personally before it's scoped.</span></div></li>
+        <li><span class="hire-num">B</span><div><b>You get a plan, not a pitch</b><span>Timeline, team, and cost — no vague retainers.</span></div></li>
+        <li><span class="hire-num">C</span><div><b>We build on our own farm</b><span>Development and hosting stay under one roof from day one.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="hire-form">
+      <form onsubmit="return handleHire(event)">
+        <div class="form-grid">
+          <div class="field">
+            <label for="hire-name">NAME</label>
+            <input id="hire-name" type="text" placeholder="Your name" required>
+          </div>
+          <div class="field">
+            <label for="hire-email">EMAIL</label>
+            <input id="hire-email" type="email" placeholder="you@company.com" required>
+          </div>
+          <div class="field">
+            <label for="hire-company">COMPANY (OPTIONAL)</label>
+            <input id="hire-company" type="text" placeholder="Company name">
+          </div>
+          <div class="field">
+            <label for="hire-budget">ESTIMATED BUDGET</label>
+            <select id="hire-budget">
+              <option>Under $2,000</option>
+              <option>$2,000 – $10,000</option>
+              <option>$10,000 – $50,000</option>
+              <option>Not sure yet</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="hire-type">PROJECT TYPE</label>
+            <select id="hire-type">
+              <option>Custom AI model</option>
+              <option>Compute hosting / server farm</option>
+              <option>Managed IT support</option>
+              <option>Something else</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="hire-msg">PROJECT DETAILS</label>
+            <textarea id="hire-msg" rows="4" placeholder="What are you trying to build or fix?" required></textarea>
+          </div>
+        </div>
+        <button class="btn btn-gold submit-btn" type="submit">Send project brief</button>
+        <div class="success-msg" id="hire-success">✓ Brief received — this is a demo, so nothing was actually sent yet.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ASK -->
+<section id="ask">
+  <div class="wrap ask-shell">
+    <div class="hire-copy">
+      <div class="eyebrow">Ask AURUX</div>
+      <h2>Have a question? Ask our assistant directly.</h2>
+      <p>A custom GPT trained on AURUX — our services, pricing approach, and process. Ask it anything before you fill out a brief.</p>
+      <ul class="hire-list">
+        <li><span class="hire-num">A</span><div><b>Trained on our real offerings</b><span>Answers reflect the services and process on this site.</span></div></li>
+        <li><span class="hire-num">B</span><div><b>Available anytime</b><span>No waiting on a reply — ask at 2am if you want to.</span></div></li>
+        <li><span class="hire-num">C</span><div><b>Still want a human?</b><span>It can hand you straight to the Hire form when you're ready.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="chat-card">
+      <div class="chat-header">
+        <span class="dot"></span>
+        <b style="font-size:14px;">AURUX Assistant</b>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-dim);margin-left:auto;">DEMO</span>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-suggestions">
+        <button type="button" class="chip" data-q="What services do you offer?">What services do you offer?</button>
+        <button type="button" class="chip" data-q="How much does a website cost?">Pricing?</button>
+        <button type="button" class="chip" data-q="Who founded AURUX?">Who founded AURUX?</button>
+        <button type="button" class="chip" data-q="Do you build custom GPTs?">Custom GPTs?</button>
+      </div>
+      <form class="chat-input-row" id="chat-form">
+        <input type="text" id="chat-input" placeholder="Ask something about AURUX..." autocomplete="off" required>
+        <button type="submit" class="btn btn-gold">Send</button>
+      </form>
+      <p class="demo-flag" style="margin:0 20px 16px;">DEMO MODE — scripted preview; a live custom GPT will replace this</p>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap contact-shell">
+    <div class="about-copy">
+      <div class="eyebrow">About us</div>
+      <h2>Started by two people who wanted to own the whole stack.</h2>
+      <p>AURUX started as a simple frustration: every AI project we touched depended on infrastructure we didn't control. So we built our own — a compute farm we maintain ourselves, paired with a studio that builds directly on top of it.</p>
+      <p>The name comes from "aurum," gold — the idea that intelligence, like gold, has to be grown, refined, and tended, not mined and dumped on someone's desk.</p>
+      <div class="founders">
+        <div class="founder"><div class="avatar">TE</div><div><b>Tawhid E Elahi</b><span>Founder</span></div></div>
+        <div class="founder"><div class="avatar">AN</div><div><b>Abdulla Al Noman</b><span>Co-Founder</span></div></div>
+      </div>
+    </div>
+
+    <div class="contact-card">
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:19px;">Why work with AURUX</h3>
+      <ul class="auth-points">
+        <li>One team owns design, build, and hosting from day one</li>
+        <li>Transparent, scoped pricing — no vague retainers</li>
+        <li>Get instant answers anytime through our Ask assistant</li>
+      </ul>
+      <a href="#ask" class="btn btn-gold" style="align-self:flex-start;">Ask a question</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <p>© 2026 AURUX — DEMO BUILD</p>
+    <p>Designed &amp; grown in Chittagong</p>
+  </div>
+</footer>
+
+<div id="robot" aria-hidden="true">
+  <div class="robot-bubble" id="robot-bubble">Hey there.</div>
+  <svg viewBox="0 0 140 176" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="rg-head" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2a2f40"/>
+        <stop offset="100%" stop-color="#101219"/>
+      </linearGradient>
+      <linearGradient id="rg-body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#20232f"/>
+        <stop offset="100%" stop-color="#0e1016"/>
+      </linearGradient>
+      <radialGradient id="rg-visor" cx="50%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#1b2130"/>
+        <stop offset="100%" stop-color="#040509"/>
+      </radialGradient>
+      <linearGradient id="rg-gold" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f2d888"/>
+        <stop offset="100%" stop-color="#c9a227"/>
+      </linearGradient>
+      <radialGradient id="rg-core" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff6d8"/>
+        <stop offset="55%" stop-color="#e6c451"/>
+        <stop offset="100%" stop-color="#c9a227" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="rg-glow" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="2.6" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <g class="robot-body">
+      <!-- shoulder stub arms -->
+      <rect x="10" y="118" width="15" height="30" rx="7.5" fill="url(#rg-body)" stroke="#c9a227" stroke-width="2"/>
+      <rect x="115" y="118" width="15" height="30" rx="7.5" fill="url(#rg-body)" stroke="#c9a227" stroke-width="2"/>
+      <circle cx="30" cy="122" r="7.5" fill="url(#rg-head)" stroke="url(#rg-gold)" stroke-width="2"/>
+      <circle cx="110" cy="122" r="7.5" fill="url(#rg-head)" stroke="url(#rg-gold)" stroke-width="2"/>
+
+      <!-- torso -->
+      <rect x="32" y="114" width="76" height="52" rx="17" fill="url(#rg-body)" stroke="url(#rg-gold)" stroke-width="2.5"/>
+      <!-- torso panel lines -->
+      <line x1="44" y1="152" x2="60" y2="152" stroke="#c9a227" stroke-width="1.6" opacity="0.4" stroke-linecap="round"/>
+      <line x1="80" y1="152" x2="96" y2="152" stroke="#c9a227" stroke-width="1.6" opacity="0.4" stroke-linecap="round"/>
+      <!-- chest core -->
+      <circle cx="70" cy="136" r="14" fill="none" stroke="url(#rg-gold)" stroke-width="1.6" opacity="0.7"/>
+      <circle class="chest-core" cx="70" cy="136" r="9" fill="url(#rg-core)" filter="url(#rg-glow)"/>
+
+      <!-- neck -->
+      <rect x="59" y="98" width="22" height="18" fill="url(#rg-body)" stroke="url(#rg-gold)" stroke-width="2"/>
+
+      <!-- side ear panels -->
+      <rect x="12" y="54" width="11" height="26" rx="5" fill="url(#rg-body)" stroke="url(#rg-gold)" stroke-width="1.8"/>
+      <rect x="117" y="54" width="11" height="26" rx="5" fill="url(#rg-body)" stroke="url(#rg-gold)" stroke-width="1.8"/>
+      <circle cx="17.5" cy="67" r="1.8" fill="#c9a227"/>
+      <circle cx="122.5" cy="67" r="1.8" fill="#c9a227"/>
+
+      <!-- antenna -->
+      <line x1="70" y1="10" x2="70" y2="32" stroke="url(#rg-gold)" stroke-width="2.6"/>
+      <circle class="antenna-core" cx="70" cy="9" r="4.6" fill="url(#rg-core)" filter="url(#rg-glow)"/>
+
+      <!-- head -->
+      <rect x="22" y="32" width="96" height="70" rx="26" fill="url(#rg-head)" stroke="url(#rg-gold)" stroke-width="2.8"/>
+      <!-- head sheen -->
+      <ellipse cx="52" cy="46" rx="26" ry="11" fill="#ffffff" opacity="0.05"/>
+
+      <!-- visor -->
+      <rect x="34" y="48" width="72" height="40" rx="18" fill="url(#rg-visor)" stroke="#3a3f52" stroke-width="1.4"/>
+
+      <!-- ============ EXPRESSIONS (inside visor) ============ -->
+
+      <!-- HOME : calm / alert -->
+      <g class="expr" id="expr-home">
+        <circle cx="54" cy="66" r="6.4" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="86" cy="66" r="6.4" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <path d="M56 80 Q70 87 84 80" stroke="#edeae2" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- AUTH : welcoming / wide smile -->
+      <g class="expr" id="expr-auth">
+        <circle cx="54" cy="65" r="7.6" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="86" cy="65" r="7.6" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <path d="M52 79 Q70 93 88 79" stroke="#edeae2" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- SERVICES : focused / analytical -->
+      <g class="expr" id="expr-services">
+        <rect x="47" y="63" width="15" height="4.5" rx="2.2" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <rect x="78" y="63" width="15" height="4.5" rx="2.2" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <path d="M58 82 H82" stroke="#edeae2" stroke-width="2.6" stroke-linecap="round"/>
+        <circle class="think-dot" cx="108" cy="40" r="2.1" fill="#c9a227"/>
+        <circle class="think-dot" cx="114" cy="35" r="1.6" fill="#c9a227"/>
+        <circle class="think-dot" cx="119" cy="29" r="1.2" fill="#c9a227"/>
+      </g>
+
+      <!-- REVIEWS : proud / happy -->
+      <g class="expr" id="expr-reviews">
+        <path d="M47 67 Q54 58 61 67" stroke="url(#rg-gold)" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#rg-glow)"/>
+        <path d="M79 67 Q86 58 93 67" stroke="url(#rg-gold)" stroke-width="3.2" fill="none" stroke-linecap="round" filter="url(#rg-glow)"/>
+        <path d="M50 80 Q70 96 90 80" stroke="#edeae2" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <circle cx="30" cy="78" r="5" fill="#c9a227" opacity="0.3"/>
+        <circle cx="110" cy="78" r="5" fill="#c9a227" opacity="0.3"/>
+      </g>
+
+      <!-- HIRE : excited / eager -->
+      <g class="expr" id="expr-hire">
+        <circle cx="54" cy="65" r="8.2" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="86" cy="65" r="8.2" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="57" cy="61.5" r="2" fill="#fff"/>
+        <circle cx="89" cy="61.5" r="2" fill="#fff"/>
+        <ellipse cx="70" cy="86" rx="11" ry="8.5" fill="#040509" stroke="url(#rg-gold)" stroke-width="2.4"/>
+      </g>
+
+      <!-- ASK : curious / attentive -->
+      <g class="expr" id="expr-ask">
+        <circle cx="54" cy="66" r="6.4" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="86" cy="66" r="6.4" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <path d="M47 56 Q54 51 61 56" stroke="#edeae2" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.55"/>
+        <path d="M79 56 Q86 51 93 56" stroke="#edeae2" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.55"/>
+        <ellipse cx="70" cy="83" rx="5.5" ry="6.5" fill="#040509" stroke="#edeae2" stroke-width="2.2"/>
+      </g>
+
+      <!-- ABOUT : warm / friendly -->
+      <g class="expr" id="expr-about">
+        <circle cx="54" cy="66" r="6.8" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <circle cx="86" cy="66" r="6.8" fill="url(#rg-gold)" filter="url(#rg-glow)"/>
+        <path d="M53 81 Q70 91 87 81" stroke="#edeae2" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+        <circle cx="32" cy="80" r="5.2" fill="#c9455a" opacity="0.28"/>
+        <circle cx="108" cy="80" r="5.2" fill="#c9455a" opacity="0.28"/>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script>
+  // Mobile nav toggle
+  document.getElementById('burgerBtn').addEventListener('click', function(){
+    document.getElementById('navlinks').classList.toggle('open');
+  });
+  document.querySelectorAll('.navlinks a').forEach(function(a){
+    a.addEventListener('click', function(){ document.getElementById('navlinks').classList.remove('open'); });
+  });
+
+  // Auth tabs
+  function switchTab(name){
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.getElementById('login-form').classList.toggle('active', name === 'login');
+    document.getElementById('signup-form').classList.toggle('active', name === 'signup');
+  }
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){ switchTab(tab.dataset.tab); });
+  });
+
+  function handleAuth(e, type){
+    e.preventDefault();
+    var status = document.getElementById('auth-status');
+    status.textContent = type === 'login'
+      ? 'DEMO MODE — log in received (no backend connected yet)'
+      : 'DEMO MODE — account request received (no backend connected yet)';
+    return false;
+  }
+
+  function handleHire(e){
+    e.preventDefault();
+    document.getElementById('hire-success').classList.add('show');
+    return false;
+  }
+
+  // ---------- Robot expressions ----------
+  var robotLines = {
+    home:     "Hey there.",
+    auth:     "Let's get you in.",
+    services: "Here's what we grow.",
+    reviews:  "They liked us.",
+    hire:     "Let's build something.",
+    ask:      "Ask me anything.",
+    about:    "Say hello anytime."
+  };
+
+  var robotEl = document.getElementById('robot');
+  var bubbleEl = document.getElementById('robot-bubble');
+  var currentExpr = null;
+
+  function setExpression(name){
+    if(name === currentExpr) return;
+    currentExpr = name;
+
+    document.querySelectorAll('#robot .expr').forEach(function(g){
+      g.classList.toggle('is-active', g.id === 'expr-' + name);
+    });
+
+    bubbleEl.classList.remove('show');
+    bubbleEl.textContent = robotLines[name] || '';
+    window.requestAnimationFrame(function(){ bubbleEl.classList.add('show'); });
+
+    robotEl.classList.remove('bump');
+    void robotEl.offsetWidth; // restart animation
+    robotEl.classList.add('bump');
+  }
+
+  var sectionIds = ['home','auth','services','reviews','hire','ask','about'];
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){ setExpression(entry.target.id); }
+    });
+  }, { root: null, rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+
+  sectionIds.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) observer.observe(el);
+  });
+
+  setExpression('home');
+
+  // ---------- Ask AURUX chat (scripted demo) ----------
+  var chatMessages = document.getElementById('chat-messages');
+  var chatForm = document.getElementById('chat-form');
+  var chatInput = document.getElementById('chat-input');
+
+  function addMessage(text, sender){
+    var el = document.createElement('div');
+    el.className = 'msg ' + sender;
+    el.textContent = text;
+    chatMessages.appendChild(el);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return el;
+  }
+
+  function showTyping(){
+    var el = document.createElement('div');
+    el.className = 'msg bot typing';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    chatMessages.appendChild(el);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return el;
+  }
+
+  function getReply(qRaw){
+    var q = qRaw.toLowerCase();
+    if(/(service|offer|do you (do|build|make))/.test(q)){
+      return "We cover web design & development, digital marketing, digital products, ad creative, branding (logos/banners/posters), AI integration, and custom GPT / Copilot agent builds. Want details on one of these?";
+    }
+    if(/(price|cost|budget|how much|rate)/.test(q)){
+      return "Pricing depends on scope — most projects fall into three ranges from under $2,000 to $50,000+. The fastest way to get a real number is the Hire form above; a founder scopes every request personally.";
+    }
+    if(/(founder|who (made|built|started|runs)|team|owner)/.test(q)){
+      return "AURUX was founded by Tawhid E Elahi (Founder) and Abdulla Al Noman (Co-Founder). You can read more about why we started AURUX in the About section below.";
+    }
+    if(/(gpt|copilot|agent|chatbot|assistant)/.test(q)){
+      return "Yes — this chat is actually a preview of that idea. We build custom GPTs and Copilot agents trained on a business's own data, so they can answer questions or automate tasks inside tools you already use.";
+    }
+    if(/(host|compute|server|infrastructure|farm|uptime)/.test(q)){
+      return "We host and maintain our own compute infrastructure rather than just handing off a model — that's the 'IT farm' half of AURUX. It means one team is responsible for both building and keeping things running.";
+    }
+    if(/(contact|reach|email|phone|talk to (a )?human)/.test(q)){
+      return "The quickest way to reach the team directly is the Hire form above — send your brief and a founder will follow up personally.";
+    }
+    if(/(hire|start|project|work with)/.test(q)){
+      return "Great — head to the Hire section above and send us a short brief. We usually reply with a scoped plan within two business days.";
+    }
+    return "I'm a scripted demo for now, so my answers are limited — but once connected to a real custom GPT I'll be able to answer anything about AURUX. Try asking about services, pricing, hosting, or our founders.";
+  }
+
+  function handleAsk(question){
+    if(!question.trim()) return;
+    addMessage(question, 'user');
+    chatInput.value = '';
+    var typingEl = showTyping();
+    setTimeout(function(){
+      typingEl.remove();
+      addMessage(getReply(question), 'bot');
+    }, 650);
+  }
+
+  if(chatForm){
+    chatForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      handleAsk(chatInput.value);
+    });
+    document.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){ handleAsk(chip.dataset.q); });
+    });
+    addMessage("Hi, I'm the AURUX assistant (demo). Ask me about our services, pricing, hosting, or team.", 'bot');
+  }
+</script>
+
+</body>
+</html>
